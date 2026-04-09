@@ -1,0 +1,26 @@
+{
+  "name": "@dark-boss/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@dark-boss/shared": "workspace:*",
+    "drizzle-orm": "^0.42.0",
+    "express": "^5.1.0",
+    "sql.js": "^1.12.0",
+    "uuid": "^11.1.0",
+    "ws": "^8.18.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.2",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.18.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

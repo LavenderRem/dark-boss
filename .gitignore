@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+*.local
+.DS_Store
+*.db
+*.db-journal
+~/.dark-boss/
+.claude/
