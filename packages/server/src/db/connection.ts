@@ -160,6 +160,33 @@ function createTables() {
     )
   `);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS chat_channels (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'team',
+      department_id TEXT REFERENCES departments(id),
+      participant_agent_ids TEXT,
+      created_at INTEGER NOT NULL
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id TEXT PRIMARY KEY,
+      channel_id TEXT NOT NULL REFERENCES chat_channels(id),
+      sender_type TEXT NOT NULL DEFAULT 'user',
+      sender_agent_id TEXT REFERENCES agents(id),
+      content TEXT NOT NULL,
+      mentions_agent_ids TEXT,
+      message_type TEXT NOT NULL DEFAULT 'text',
+      created_at INTEGER NOT NULL
+    )
+  `);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_messages_channel ON chat_messages(channel_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_messages_created ON chat_messages(created_at)`);
+
   db.run(`CREATE INDEX IF NOT EXISTS idx_events_agent ON agent_events(agent_id)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_events_created ON agent_events(created_at)`);
 

@@ -1,6 +1,8 @@
+import http from 'node:http';
 import { createApp } from './app.js';
 import { initDatabase, save } from './db/connection.js';
 import { seed } from './db/seed.js';
+import { createWsServer } from './ws/connection.js';
 import { config } from './utils/config.js';
 
 async function main() {
@@ -13,11 +15,18 @@ async function main() {
   // 定期保存（sql.js 是内存数据库，需要持久化到文件）
   setInterval(save, 30000);
 
-  // 启动服务器
+  // 创建 Express 应用
   const app = createApp();
-  app.listen(config.port, config.host, () => {
+
+  // 创建 HTTP 服务器（同时服务 Express + WebSocket）
+  const server = http.createServer(app);
+
+  // 启动 WebSocket 服务器
+  createWsServer(server);
+
+  server.listen(config.port, config.host, () => {
     console.log(`[暗黑老板] 服务器已启动: http://${config.host}:${config.port}`);
-    console.log(`[暗黑老板] API: http://${config.host}:${config.port}/api/health`);
+    console.log(`[暗黑老板] WebSocket: ws://${config.host}:${config.port}/ws`);
   });
 }
 

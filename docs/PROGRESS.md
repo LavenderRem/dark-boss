@@ -5,102 +5,101 @@
 ## 当前状态
 
 **Phase 1：基础 + 员工网格 + 基础控制 — ✅ 已完成**
-**Phase 2：工作流画布 + 实时执行 — ⏳ 待开始**
+**Phase 2：工作流画布 + 实时执行 — ✅ 已完成**
+**Phase 3：组织架构 + 看板 + 群聊 — ✅ 已完成**
 
 ---
 
-## Phase 1 完成清单
+## Phase 2 完成清单
 
-### 后端 (packages/server)
-- [x] Express 5 + sql.js (WASM SQLite) 数据库
-- [x] 6 张表：agents, departments, workflows, tasks, templates, agent_events
-- [x] Agent CRUD API (GET/POST/PATCH/DELETE /api/v1/agents)
-- [x] 部门 CRUD API (GET/POST/DELETE /api/v1/departments)
-- [x] 模板浏览+安装 API (GET /templates, POST /templates/:id/install)
-- [x] 初始数据：4 个默认部门 + 7 个内置 Agent 模板
-- [x] 健康检查 GET /api/health
-- [x] 数据存储在 ~/.dark-boss/data.db
+### 后端
+- [x] 工作流 CRUD API (GET/POST/PATCH/DELETE /api/v1/workflows)
+- [x] 工作流执行端点 (POST /workflows/:id/execute)
+- [x] WebSocket 服务器 (ws://localhost:3000/ws)
+- [x] 广播函数 broadcast() 用于实时推送事件
+- [x] 工作流执行引擎 (拓扑排序 + 并行执行 + 事件广播)
 
-### 前端 (packages/client)
-- [x] React 19 + Vite 6 + Ant Design 5 深色主题
-- [x] 企业侧边栏导航（8 个页面入口）
-- [x] 仪表盘页面：4 张统计卡片 + Agent 网格
-- [x] API 客户端 + Vite 代理到后端
-- [x] 中文 UI 全覆盖
+### 前端
+- [x] React Flow 画布 + 深色主题
+- [x] 5 种自定义节点：AgentNode, InputNode, OutputNode, RouterNode, AggregatorNode
+- [x] 自定义 DataEdge (带 "+" 插入按钮)
+- [x] 节点侧边栏 (基础组件 + 员工列表，支持拖拽到画布)
+- [x] 画布工具栏 (新建/保存/自动布局/执行/暂停)
+- [x] elkjs 自动布局 hook
+- [x] Zustand workflow-store (节点/边/执行状态管理)
+- [x] 路由接入 /canvas 页面
 
-### 共享 (packages/shared)
-- [x] Agent, Department, Workflow, Task, Event 等完整类型定义
-- [x] 角色常量（11 种 AgentRole）、状态颜色、中文标签
-
-### 未完成（Phase 1 遗留）
-- [ ] Agent 实际控制层（Claude Agent SDK 集成）— 需要 @anthropic-ai/claude-agent-sdk
-- [ ] WebSocket 实时通信（ws 包已安装但未实现）
-- [ ] Agent 启动/停止/中断端点（路由占位但未接 SDK）
-- [ ] Agent 详情页（xterm 终端输出流）
-- [ ] Agent 创建弹窗（从模板选择）
-
-### 技术决策
-- [x] 5 份 ADR 已归档至 docs/adr/
-- [x] CLAUDE.md 已更新（命令表 + API 端点）
-- [x] CONTRIBUTING.md 已生成
-
----
-
-## Phase 2 计划：工作流画布 + 实时执行
-
-### 目标
-实现完整的 2D 工作流编辑器：拖拽 Agent 节点、连线、保存、一键执行、实时进度可视化。
-
-### 任务分解
-
-| # | 任务 | 关键文件 | 依赖 |
-|---|------|----------|------|
-| 2.1 | 工作流 CRUD API | `server/src/routes/workflows.ts` | 无 |
-| 2.2 | React Flow 画布基础 | `client/src/pages/canvas/components/flow-canvas.tsx` | @xyflow/react 已安装 |
-| 2.3 | 自定义 AgentNode 节点 | `client/src/pages/canvas/components/agent-node.tsx` | 2.2 |
-| 2.4 | 自定义 DataEdge 边 | `client/src/pages/canvas/components/data-edge.tsx` | 2.2 |
-| 2.5 | 节点侧边栏（拖拽 Agent） | `client/src/pages/canvas/components/node-sidebar.tsx` | 2.2 |
-| 2.6 | elkjs 自动布局 | `client/src/pages/canvas/hooks/use-auto-layout.ts` | 2.2 |
-| 2.7 | 画布工具栏 | `client/src/pages/canvas/components/flow-toolbar.tsx` | 2.2 |
-| 2.8 | 工作流状态管理 | `client/src/stores/workflow-store.ts` | 2.1 |
-| 2.9 | 工作流执行引擎 | `server/src/services/workflow-engine.ts` | 2.1 + Agent SDK |
-| 2.10 | 实时执行可视化 | 画布节点高亮 + 边流动动画 | 2.9 + WebSocket |
-| 2.11 | 执行日志查看器 | `client/src/pages/canvas/components/execution-log.tsx` | 2.10 |
-| 2.12 | 工作流变量系统 | `server/src/services/workflow-engine.ts` 扩展 | 2.9 |
-
-### 技术要点
-
-**React Flow 画布**
-- 使用 `@xyflow/react` v12 (已安装)
-- 自定义节点类型：`agent`(Agent 节点), `input`, `output`, `router`(并行分发), `aggregator`(合并)
-- 自定义边类型：`data`(数据流), `conditional`(条件路由)
-- 边上右键可 "插入 Agent"（CrewForm 验证过的交互模式）
-- Dagre/elkjs 自动布局（需要安装 `elkjs` 包）
-
-**工作流执行引擎**
-- 拓扑排序节点 → 识别可并行执行的独立节点
-- 为每个节点创建任务并分配给对应 Agent
-- 上游节点输出通过边传递给下游节点
-- 通过 WebSocket 广播每步进度
-
-**关键参考**
-- CrewForm 的 React Flow + Dagre 实现：https://dev.to/vincent_grobler_776512b17/how-we-built-a-visual-drag-and-drop-workflow-builder-for-ai-agent-teams-react-flow-dagre-211j
-- React Flow 官方 Workflow Editor 模板：https://reactflow.dev/components/templates/workflow-editor
-
-### 需要额外安装的包
-
-```bash
-# 前端
-pnpm --filter @dark-boss/client add elkjs
-pnpm --filter @dark-boss/client add -D @types/elkjs
-
-# 后端（Agent SDK 集成时）
-pnpm --filter @dark-boss/server add @anthropic-ai/claude-agent-sdk
+### 新增文件清单
+```
+packages/server/src/routes/workflows.ts      # 工作流 API
+packages/server/src/ws/connection.ts          # WebSocket 服务
+packages/server/src/services/workflow-engine.ts # 执行引擎
+packages/client/src/pages/canvas/index.tsx    # 画布页面入口
+packages/client/src/pages/canvas/components/
+  flow-canvas.tsx      # 主画布组件
+  agent-node.tsx       # Agent 节点
+  input-output-nodes.tsx # 输入/输出/Router/Aggregator 节点
+  data-edge.tsx        # 数据流边
+  node-sidebar.tsx     # 侧边栏
+  flow-toolbar.tsx     # 工具栏
+packages/client/src/pages/canvas/hooks/
+  use-auto-layout.ts   # elkjs 自动布局
+packages/client/src/stores/
+  workflow-store.ts    # Zustand 状态管理
 ```
 
+### 待优化（Phase 2 遗留）
+- [ ] 工作流保存/加载 UI（当前 store 只在内存，未接 API）
+- [ ] 实时执行可视化的节点高亮动画（broadcast 已实现，前端消费待接）
+- [ ] 边上 "插入节点" 交互（事件已注册，处理逻辑待实现）
+- [ ] 工作流列表页（选择/切换工作流）
+- [ ] 执行日志查看器面板
+- [ ] 前端 build chunk 优化（antd 全量打包 2.4MB）
+
 ---
 
-## Phase 3 计划：组织架构 + 看板 + 群聊
+## Phase 3 完成清单
+
+### 后端（已完成）
+- [x] 部门树 API（CRUD + 移动/重排父级）`departments.ts`
+- [x] 任务 CRUD + 看板操作 API `tasks.ts`（含移动、分配）
+- [x] 聊天频道 + 消息 API `chat.ts`（含分页、WebSocket 广播）
+
+### 前端
+- [x] 组织架构页面 (`pages/org-chart/index.tsx`)
+  - 部门树形展示 + 颜色标记
+  - 右键菜单：添加子部门、编辑、删除
+  - 部门详情面板（成员列表）
+  - 创建/编辑弹窗（名称、描述、颜色、负责人）
+- [x] 协作看板页面 (`pages/kanban/index.tsx`)
+  - 5 列看板：待规划 / 待办 / 进行中 / 审核中 / 已完成
+  - dnd-kit 拖拽（跨列移动任务）
+  - 任务卡片（优先级颜色、指派人、预估时间）
+  - 创建/编辑/删除任务
+- [x] 团队群聊页面 (`pages/chat/index.tsx`)
+  - 频道列表（团队/私聊/部门）
+  - 消息气泡（区分用户/Agent/系统消息）
+  - @提及 高亮 + 提取 Agent IDs
+  - 创建频道弹窗
+  - 消息输入框（Shift+Enter 换行）
+
+### 新增文件清单
+```
+packages/client/src/pages/org-chart/index.tsx   # 组织架构页面
+packages/client/src/pages/kanban/index.tsx      # 看板页面
+packages/client/src/pages/chat/index.tsx        # 聊天页面
+```
+
+### 待优化（Phase 3 遗留）
+- [ ] 组织架构拖拽排序部门
+- [ ] 看板 dnd-kit SortableContext 同列内排序
+- [ ] 聊天 WebSocket 实时接收新消息（当前用轮询/刷新）
+- [ ] Agent 自动回复消息（接入 Claude SDK）
+- [ ] 消息附件/富文本支持
+
+---
+
+## Phase 3 ~~计划~~ → 已完成
 
 ### 任务分解
 
@@ -149,6 +148,7 @@ pnpm dev              # 启动前后端
 
 - 前端: http://localhost:5173
 - 后端: http://localhost:3000
+- WebSocket: ws://localhost:3000/ws
 
 ### 项目结构速查
 
@@ -156,15 +156,26 @@ pnpm dev              # 启动前后端
 packages/shared/src/types/  → 全部类型定义
 packages/server/src/db/     → 数据库 (connection.ts, seed.ts)
 packages/server/src/routes/ → REST API 路由
+packages/server/src/ws/     → WebSocket
+packages/server/src/services/ → 执行引擎
 packages/client/src/pages/  → 前端页面
 packages/client/src/stores/ → Zustand 状态管理
 docs/adr/                   → 架构决策记录
 ```
 
-### 技术债务
+### API 端点汇总
 
-1. **Agent 控制层未接入**：当前 Agent 只有 CRUD，无法实际启动 Claude 实例。需要集成 `@anthropic-ai/claude-agent-sdk`
-2. **WebSocket 未实现**：ws 包已安装但未编写 handler。需要 `server/src/ws/` 目录
-3. **数据库持久化策略**：sql.js 是内存数据库，当前每 30 秒 save()。关键写操作后应立即 save()
-4. **错误处理粗糙**：路由中的 catch 只返回 500，需要区分 400/404/409 等
-5. **前端只有仪表盘可用**：其余 7 个页面是占位符
+基础路径: `/api/v1`
+
+| 资源 | 方法 | 路径 |
+|------|------|------|
+| Agent | GET/POST | /agents |
+| Agent | GET/PATCH/DELETE | /agents/:id |
+| 部门 | GET/POST | /departments |
+| 部门 | DELETE | /departments/:id |
+| 模板 | GET | /templates |
+| 模板安装 | POST | /templates/:id/install |
+| 工作流 | GET/POST | /workflows |
+| 工作流 | GET/PATCH/DELETE | /workflows/:id |
+| 执行 | POST | /workflows/:id/execute |
+| 健康 | GET | /api/health |

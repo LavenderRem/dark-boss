@@ -67,12 +67,22 @@ pnpm dev
 | GET | /templates | 列出模板 (?category= 筛选) |
 | POST | /templates/:id/install | 从模板创建 Agent |
 
+### Workflow (工作流)
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /workflows | 列出工作流 |
+| POST | /workflows | 创建工作流 |
+| GET | /workflows/:id | 获取工作流 (含图) |
+| PATCH | /workflows/:id | 保存画布 |
+| DELETE | /workflows/:id | 删除工作流 |
+| POST | /workflows/:id/execute | 执行工作流 |
+
 ### System
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | /api/health | 健康检查 |
-<!-- AUTO-GENERATED:API-END -->
 
 ## 项目结构
 
