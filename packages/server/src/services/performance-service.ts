@@ -177,11 +177,10 @@ export function getAgentPerformanceOverview() {
       [agent.id, weekAgo]
     );
 
-    // 近 7 天 Token
-    const weekTokens = queryOne<{ sum: number | null }>(
-      `SELECT SUM(tokens_used) as sum FROM agent_events
-       WHERE agent_id = ? AND created_at >= ?`,
-      [agent.id, weekAgo]
+    // 近 7 天 Token（agent_events.tokens 是 JSON TEXT，需要从 agents 表获取累计值）
+    const weekTokens = queryOne<{ tokens_used: number | null }>(
+      'SELECT tokens_used FROM agents WHERE id = ?',
+      [agent.id]
     );
 
     return {
@@ -198,7 +197,7 @@ export function getAgentPerformanceOverview() {
       totalCost: agent.total_cost,
       efficiencyScore: latestSnapshot?.efficiency_score ?? null,
       last7DaysTasksCompleted: weekResult?.count || 0,
-      last7DaysTokensUsed: weekTokens?.sum || 0,
+      last7DaysTokensUsed: weekTokens?.tokens_used || 0,
     };
   });
 }
@@ -259,6 +258,29 @@ export function getAgentTrend(agentId: string, days: number = 7) {
      WHERE agent_id = ? AND period = 'daily' AND period_start >= ?
      ORDER BY period_start ASC`,
     [agentId, since]
+  );
+}
+
+// 获取团队级趋势（按天聚合所有 Agent）
+export function getTeamTrend(days: number = 7) {
+  const since = Date.now() - days * 24 * 60 * 60 * 1000;
+  return queryAll<{
+    period_start: number;
+    tasks_completed: number;
+    tokens_used: number;
+    total_cost: number;
+    avg_efficiency: number;
+  }>(
+    `SELECT period_start,
+            SUM(tasks_completed) as tasks_completed,
+            SUM(tokens_used) as tokens_used,
+            SUM(total_cost) as total_cost,
+            AVG(efficiency_score) as avg_efficiency
+     FROM performance_snapshots
+     WHERE period = 'daily' AND period_start >= ?
+     GROUP BY period_start
+     ORDER BY period_start ASC`,
+    [since]
   );
 }
 

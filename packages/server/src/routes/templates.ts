@@ -35,7 +35,7 @@ router.post('/:id/install', (req, res) => {
 
     run(
       `INSERT INTO agents (id, name, role, cwd, model, permission_mode, status, custom_instructions, allowed_tools, mcp_servers, template_id, department_id, created_at, last_activity_at)
-       VALUES (?, ?, ?, ?, ?, 'bypass', 'offline', ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, 'bypass', 'idle', ?, ?, ?, ?, ?, ?, ?)`,
       [agentId, name || template.name, template.role, cwd, agentModel,
         template.custom_instructions, template.allowed_tools, template.mcp_servers,
         template.id, departmentId || null, now, now]
@@ -48,6 +48,28 @@ router.post('/:id/install', (req, res) => {
   } catch (err) {
     console.error('安装模板失败:', err);
     res.status(500).json({ error: '安装模板失败' });
+  }
+});
+
+// 模板评分
+router.post('/:id/rate', (req, res) => {
+  try {
+    const { score } = req.body as { score: number };
+    if (!score || score < 1 || score > 5) return res.status(400).json({ error: '评分必须在 1-5 之间' });
+
+    const template = queryOne<{ id: string; rating: number }>('SELECT id, rating FROM templates WHERE id = ?', [req.params.id]);
+    if (!template) return res.status(404).json({ error: '模板不存在' });
+
+    // 简单加权平均：新评分 = (旧评分 * 0.7 + 新评分 * 0.3)，保留 1 位小数
+    const newRating = template.rating > 0
+      ? Math.round((template.rating * 0.7 + score * 0.3) * 10) / 10
+      : score;
+
+    run('UPDATE templates SET rating = ?, updated_at = ? WHERE id = ?', [newRating, Date.now(), req.params.id]);
+
+    res.json({ rating: newRating });
+  } catch (err) {
+    res.status(500).json({ error: '评分失败' });
   }
 });
 

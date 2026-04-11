@@ -95,34 +95,46 @@ pnpm --filter @dark-boss/client add recharts
 
 ---
 
-## 待优化（Phase 4 遗留）
-- [ ] 绩效趋势图从真实快照数据渲染（当前用 Agent 聚合数据模拟）
+## 待优化（Phase 4 遗留）→ 全部已完成
+
+- [x] 员工管理页面完整实现（CRUD + 详情弹窗 + 编辑/删除）
+- [x] 工作流保存/加载 UI 接入 API（保存按钮调 PATCH，进入页面自动加载）
+- [x] 工作流列表页（卡片网格展示，选择/切换/新建/删除工作流）
+- [x] 聊天 WebSocket 实时接收新消息（自动重连 + 按 channelId 过滤）
+- [x] 看板 dnd-kit SortableContext 同列内排序（useSortable + CSS.Transform）
+- [x] 边上 "插入节点" 交互（点击 + 按钮在边中间插入 Agent 节点 + 自动连线）
+- [x] 绩效趋势图从真实快照数据渲染（LineChart 时间序列 + 团队趋势 API）
+- [x] 模板评分系统（Rate 组件 + 后端加权平均）
+- [x] 组织架构拖拽排序部门（Tree draggable + onDrop + move API）
+- [x] 执行日志查看器面板（员工详情 Tabs + agent_events 表查询）
+- [x] 前端 build chunk 优化（Vite manualChunks 分包：react/antd/flow/charts/dnd）
 - [ ] AI 报告接入 Claude Agent SDK（当前为模板化生成）
-- [ ] 模板评分系统（安装后评价）
-- [ ] 员工管理页面完整实现（当前为占位页）
-- [ ] 工作流保存/加载 UI 接入 API
-- [ ] 聊天 WebSocket 实时接收消息
+- [ ] Agent 自动回复消息（接入 Claude SDK）
+- [ ] 消息附件/富文本支持
 
----
+### 本轮新增/修改文件
+```
+# 新增
+packages/client/src/pages/agents/index.tsx          # 员工管理页面（完整 CRUD + 事件日志面板）
 
-## Phase 2 完成清单
+# 修改
+packages/client/src/App.tsx                          # 注册员工管理页面
+packages/client/src/pages/canvas/index.tsx           # 工作流列表 + 保存/加载/执行
+packages/client/src/pages/canvas/components/flow-canvas.tsx  # 接入保存/执行 + 边插入节点
+packages/client/src/pages/chat/index.tsx             # WebSocket 实时消息
+packages/client/src/pages/kanban/index.tsx           # SortableTaskCard 同列排序
+packages/client/src/pages/performance/index.tsx      # 真实快照趋势图
+packages/client/src/pages/market/index.tsx           # 模板评分 Rate 组件
+packages/client/src/pages/org-chart/index.tsx        # 部门拖拽排序
+packages/server/src/routes/agents.ts                 # Agent 事件日志 API
+packages/server/src/routes/performance.ts            # 团队趋势 API
+packages/server/src/services/performance-service.ts  # getTeamTrend 函数
+packages/server/src/routes/templates.ts              # 评分 API
+packages/client/vite.config.ts                       # manualChunks 分包配置
 
-### 后端
-- [x] 工作流 CRUD API (GET/POST/PATCH/DELETE /api/v1/workflows)
-- [x] 工作流执行端点 (POST /workflows/:id/execute)
-- [x] WebSocket 服务器 (ws://localhost:3000/ws)
-- [x] 广播函数 broadcast() 用于实时推送事件
-- [x] 工作流执行引擎 (拓扑排序 + 并行执行 + 事件广播)
-
-### 前端
-- [x] React Flow 画布 + 深色主题
-- [x] 5 种自定义节点：AgentNode, InputNode, OutputNode, RouterNode, AggregatorNode
-- [x] 自定义 DataEdge (带 "+" 插入按钮)
-- [x] 节点侧边栏 (基础组件 + 员工列表，支持拖拽到画布)
-- [x] 画布工具栏 (新建/保存/自动布局/执行/暂停)
-- [x] elkjs 自动布局 hook
-- [x] Zustand workflow-store (节点/边/执行状态管理)
-- [x] 路由接入 /canvas 页面
+# 新增依赖
+pnpm --filter @dark-boss/client add @dnd-kit/utilities
+```
 
 ### 新增文件清单
 ```
@@ -222,7 +234,10 @@ docs/adr/                   → 架构决策记录
 | 聊天频道 | GET/POST | /chat/channels |
 | 聊天消息 | GET/POST | /chat/channels/:id/messages |
 | 绩效概览 | GET | /performance/dashboard |
+| 绩效趋势 | GET | /performance/trend |
 | 绩效列表 | GET | /performance/agents |
 | 绩效详情 | GET | /performance/agents/:id |
 | 绩效报告 | GET | /performance/agents/:id/report |
+| 事件日志 | GET | /agents/:id/events |
+| 模板评分 | POST | /templates/:id/rate |
 | 健康 | GET | /api/health |

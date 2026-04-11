@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Row, Col, Card, Typography, Tag, Button, Modal, Input, Select,
-  Space, Skeleton, Empty, Tabs, Divider, message,
+  Space, Skeleton, Empty, Tabs, Divider, message, Rate,
 } from 'antd';
 import {
   ShopOutlined,
@@ -83,6 +83,16 @@ export function MarketPage() {
     onError: (err: Error) => {
       message.error(`招聘失败: ${err.message}`);
     },
+  });
+
+  const rateMutation = useMutation({
+    mutationFn: ({ templateId, score }: { templateId: string; score: number }) =>
+      api.post<{ rating: number }>(`/templates/${templateId}/rate`, { score }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['templates'] });
+      message.success('评分成功');
+    },
+    onError: (err: Error) => message.error(err.message),
   });
 
   const handleOpenInstall = (template: Template) => {
@@ -218,6 +228,13 @@ export function MarketPage() {
                     <span style={{ color: '#8c8c8c', fontSize: 12 }}>
                       <DownloadOutlined /> {template.install_count}
                     </span>
+                    <Rate
+                      disabled={rateMutation.isPending}
+                      allowHalf
+                      value={template.rating || 0}
+                      onChange={(score) => rateMutation.mutate({ templateId: template.id, score })}
+                      style={{ fontSize: 12 }}
+                    />
                   </Space>
                   <Button
                     type="primary"

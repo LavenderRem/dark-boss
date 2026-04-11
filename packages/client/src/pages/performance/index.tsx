@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell,
+  LineChart, Line,
 } from 'recharts';
 import { api } from '../../api/client.js';
 import type {
@@ -41,6 +42,11 @@ export function PerformancePage() {
     queryFn: () => api.get<AgentPerformanceOverview[]>('/performance/agents'),
   });
 
+  const { data: trendSnapshots = [] } = useQuery({
+    queryKey: ['performance-trend', trendDays],
+    queryFn: () => api.get<{ period_start: number; tasks_completed: number; tokens_used: number; total_cost: number; avg_efficiency: number }[]>(`/performance/trend?days=${trendDays}`),
+  });
+
   const { data: report, isLoading: reportLoading } = useQuery({
     queryKey: ['performance-report', reportModal.agentId],
     queryFn: () => api.get<PerformanceReport>(`/performance/agents/${reportModal.agentId}/report`),
@@ -64,12 +70,22 @@ export function PerformancePage() {
     { name: '已取消', value: stats?.totalTasksFailed || 0, color: '#ff4d4f' },
   ].filter(d => d.value > 0);
 
-  // 模拟趋势数据（因为快照可能较少，从 agent 聚合数据生成）
-  const trendData = (agents || []).map(a => ({
-    name: a.agentName,
-    tasks: a.last7DaysTasksCompleted,
-    tokens: Math.round(a.last7DaysTokensUsed / 1000),
-  }));
+  // 趋势数据：优先使用真实快照，回退到 Agent 聚合
+  const trendData = trendSnapshots.length > 0
+    ? trendSnapshots.map(s => ({
+        date: new Date(s.period_start).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }),
+        tasks: s.tasks_completed,
+        tokens: Math.round(s.tokens_used / 1000),
+        cost: Math.round(s.total_cost * 100) / 100,
+        efficiency: Math.round(s.avg_efficiency),
+      }))
+    : (agents || []).map(a => ({
+        date: a.agentName,
+        tasks: a.last7DaysTasksCompleted,
+        tokens: Math.round(a.last7DaysTokensUsed / 1000),
+        cost: Math.round(a.totalCost * 100) / 100,
+        efficiency: a.efficiencyScore || 0,
+      }));
 
   const columns = [
     {
@@ -289,11 +305,11 @@ export function PerformancePage() {
         </Col>
       </Row>
 
-      {/* 近 7 天趋势 */}
+      {/* 近期趋势 */}
       <Card
         title={
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: '#e8e8e8' }}>近期产出</span>
+            <span style={{ color: '#e8e8e8' }}>{trendSnapshots.length > 0 ? '绩效趋势' : '近期产出'}</span>
             <Segmented
               size="small"
               options={[
@@ -309,11 +325,25 @@ export function PerformancePage() {
       >
         {trendData.length === 0 ? (
           <Empty description="暂无趋势数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        ) : trendSnapshots.length > 0 ? (
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={trendData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#303030" />
+              <XAxis dataKey="date" stroke="#8c8c8c" tick={{ fill: '#bfbfbf', fontSize: 12 }} />
+              <YAxis stroke="#8c8c8c" />
+              <Tooltip
+                contentStyle={{ background: '#1f1f1f', border: '1px solid #303030', borderRadius: 4 }}
+                labelStyle={{ color: '#e8e8e8' }}
+              />
+              <Line type="monotone" dataKey="tasks" stroke="#52c41a" name="完成任务" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="efficiency" stroke="#1890ff" name="平均效率" strokeWidth={2} dot={{ r: 3 }} />
+            </LineChart>
+          </ResponsiveContainer>
         ) : (
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#303030" />
-              <XAxis dataKey="name" stroke="#8c8c8c" tick={{ fill: '#bfbfbf', fontSize: 12 }} />
+              <XAxis dataKey="date" stroke="#8c8c8c" tick={{ fill: '#bfbfbf', fontSize: 12 }} />
               <YAxis stroke="#8c8c8c" />
               <Tooltip
                 contentStyle={{ background: '#1f1f1f', border: '1px solid #303030', borderRadius: 4 }}

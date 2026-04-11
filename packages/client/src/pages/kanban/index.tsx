@@ -18,7 +18,8 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { api } from '../../api/client.js';
 import type { Task, TaskStatus, TaskPriority, Agent } from '@dark-boss/shared';
 import { AGENT_ROLES } from '@dark-boss/shared';
@@ -59,7 +60,6 @@ function TaskCard({ task, agents, onEdit, onDelete }: {
         background: '#2a2a2a',
         borderLeft: `3px solid ${priorityConfig.color}`,
         cursor: 'grab',
-        marginBottom: 8,
       }}
       styles={{ body: { padding: '8px 12px' } }}
     >
@@ -101,6 +101,32 @@ function TaskCard({ task, agents, onEdit, onDelete }: {
         </div>
       )}
     </Card>
+  );
+}
+
+// 可排序的任务卡片（带 dnd-kit useSortable）
+function SortableTaskCard({ task, agents, onEdit, onDelete }: {
+  task: Task;
+  agents: Agent[];
+  onEdit: (task: Task) => void;
+  onDelete: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: task.id,
+    data: { status: task.status },
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    marginBottom: 8,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <TaskCard task={task} agents={agents} onEdit={onEdit} onDelete={onDelete} />
+    </div>
   );
 }
 
@@ -322,23 +348,22 @@ export function KanbanPage() {
                 >
                   <div style={{ padding: 8, flex: 1, overflow: 'auto', minHeight: 100 }}>
                     {columnTasks.map(task => (
-                      <div key={task.id} id={task.id} style={{ marginBottom: 4 }}>
-                        <TaskCard
-                          task={task}
-                          agents={agents}
-                          onEdit={(t) => {
-                            setEditingTask(t);
-                            editForm.setFieldsValue({
-                              title: t.title,
-                              description: t.description,
-                              priority: t.priority,
-                              assignedAgentId: t.assignedAgentId,
-                            });
-                            setEditModalOpen(true);
-                          }}
-                          onDelete={handleDelete}
-                        />
-                      </div>
+                      <SortableTaskCard
+                        key={task.id}
+                        task={task}
+                        agents={agents}
+                        onEdit={(t) => {
+                          setEditingTask(t);
+                          editForm.setFieldsValue({
+                            title: t.title,
+                            description: t.description,
+                            priority: t.priority,
+                            assignedAgentId: t.assignedAgentId,
+                          });
+                          setEditModalOpen(true);
+                        }}
+                        onDelete={handleDelete}
+                      />
                     ))}
                   </div>
                 </SortableContext>

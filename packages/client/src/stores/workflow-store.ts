@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Node, Edge, Connection } from '@xyflow/react';
+import { applyNodeChanges, applyEdgeChanges, addEdge, type Node, type Edge, type Connection } from '@xyflow/react';
 import type { Workflow, WorkflowStatus } from '@dark-boss/shared';
 
 interface WorkflowState {
@@ -72,17 +72,14 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   setEdges: (edges) => set({ edges }),
 
   onNodesChange: (changes) => {
-    const { applyNodeChanges } = require('@xyflow/react') as typeof import('@xyflow/react');
     set({ nodes: applyNodeChanges(changes, get().nodes), isDirty: true });
   },
 
   onEdgesChange: (changes) => {
-    const { applyEdgeChanges } = require('@xyflow/react') as typeof import('@xyflow/react');
     set({ edges: applyEdgeChanges(changes, get().edges), isDirty: true });
   },
 
   onConnect: (connection) => {
-    const { addEdge } = require('@xyflow/react') as typeof import('@xyflow/react');
     set({ edges: addEdge({ ...connection, type: 'data' }, get().edges), isDirty: true });
   },
 

@@ -3,6 +3,7 @@ import {
   getAgentPerformanceOverview,
   getDashboardStats,
   getAgentTrend,
+  getTeamTrend,
   generateReport,
 } from '../services/performance-service.js';
 
@@ -16,6 +17,18 @@ router.get('/dashboard', (_req, res) => {
   } catch (err) {
     console.error('获取团队统计失败:', err);
     res.status(500).json({ error: '获取团队统计失败' });
+  }
+});
+
+// 团队趋势数据
+router.get('/trend', (req, res) => {
+  try {
+    const days = parseInt(req.query.days as string) || 7;
+    const trend = getTeamTrend(days);
+    res.json(trend);
+  } catch (err) {
+    console.error('获取团队趋势失败:', err);
+    res.status(500).json({ error: '获取团队趋势失败' });
   }
 });
 

@@ -131,6 +131,17 @@ export function OrgChartPage() {
     onError: (err: Error) => message.error(err.message),
   });
 
+  // 拖拽排序 mutation
+  const reorderMutation = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) =>
+      api.post(`/departments/${id}/move`, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['departments'] });
+      message.success('部门已移动');
+    },
+    onError: (err: Error) => message.error(err.message),
+  });
+
   const handleCreate = () => {
     form.validateFields().then(values => {
       createMutation.mutate({
@@ -272,6 +283,40 @@ export function OrgChartPage() {
           <Tree
             treeData={displayTree}
             defaultExpandAll
+            draggable
+            onDrop={(info) => {
+              const dragKey = info.dragNode.key as string;
+              const dropKey = info.node.key as string;
+              const dropPosition = info.dropPosition;
+              const dropToGap = info.dropToGap;
+
+              if (dragKey === dropKey) return;
+
+              // 拖拽到某个节点的上方/下方 = 同级排序
+              // 拖拽到某个节点内部 = 变为子节点
+              if (dropToGap) {
+                // 同级移动，保持父级不变，更新 sort_order
+                const dragDept = departments.find(d => d.id === dragKey);
+                const dropDept = departments.find(d => d.id === dropKey);
+                if (!dragDept || !dropDept) return;
+                reorderMutation.mutate({
+                  id: dragKey,
+                  body: {
+                    parentId: dropDept.parentId || null,
+                    sortOrder: dropPosition,
+                  },
+                });
+              } else {
+                // 拖入某个节点内，变为子部门
+                reorderMutation.mutate({
+                  id: dragKey,
+                  body: {
+                    parentId: dropKey,
+                    sortOrder: 0,
+                  },
+                });
+              }
+            }}
             selectedKeys={selectedKey ? [selectedKey] : []}
             onSelect={(keys) => setSelectedKey(keys[0] as string || null)}
             style={{ background: 'transparent', color: '#e8e8e8' }}

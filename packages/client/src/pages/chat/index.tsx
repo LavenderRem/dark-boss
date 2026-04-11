@@ -41,6 +41,37 @@ const CHANNEL_TYPE_MAP: Record<string, { icon: React.ReactNode; color: string }>
   department: { icon: <MessageOutlined />, color: '#722ed1' },
 };
 
+// WebSocket 单例
+let ws: WebSocket | null = null;
+let wsListeners: Array<(msg: { type: string; payload: unknown }) => void> = [];
+
+function connectWs() {
+  if (ws && ws.readyState === WebSocket.OPEN) return;
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${protocol}//${window.location.hostname}:3000/ws`);
+
+  ws.onmessage = (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+      wsListeners.forEach(fn => fn(msg));
+    } catch { /* ignore */ }
+  };
+
+  ws.onclose = () => {
+    // 3 秒后重连
+    setTimeout(connectWs, 3000);
+  };
+}
+
+function onWsMessage(fn: (msg: { type: string; payload: unknown }) => void) {
+  wsListeners.push(fn);
+  connectWs();
+  return () => {
+    wsListeners = wsListeners.filter(l => l !== fn);
+  };
+}
+
 function formatTime(ts: number) {
   const d = new Date(ts);
   const now = new Date();
@@ -129,6 +160,19 @@ export function ChatPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // WebSocket 实时接收新消息
+  useEffect(() => {
+    const unsub = onWsMessage((msg) => {
+      if (msg.type === 'chat:message') {
+        const payload = msg.payload as { channelId?: string; messageId?: string };
+        if (payload.channelId === selectedChannel) {
+          queryClient.invalidateQueries({ queryKey: ['messages', selectedChannel] });
+        }
+      }
+    });
+    return unsub;
+  }, [selectedChannel, queryClient]);
 
   // 提取 @提及 的 agent ids
   const extractMentions = (text: string): string[] => {

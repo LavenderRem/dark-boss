@@ -48,7 +48,7 @@ router.post('/', (req, res) => {
 
     run(
       `INSERT INTO agents (id, name, role, cwd, model, permission_mode, status, department_id, is_boss, custom_instructions, allowed_tools, mcp_servers, template_id, created_at, last_activity_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'offline', ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, 'idle', ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, body.name, body.role, body.cwd,
         body.model || 'sonnet', body.permissionMode || 'bypass',
@@ -109,6 +109,25 @@ router.delete('/:id', (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: '删除 Agent 失败' });
+  }
+});
+
+// 获取 Agent 事件日志
+router.get('/:id/events', (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+    const offset = parseInt(req.query.offset as string) || 0;
+    const events = queryAll(
+      'SELECT * FROM agent_events WHERE agent_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
+      [req.params.id, limit, offset]
+    );
+    const total = queryOne<{ count: number }>(
+      'SELECT COUNT(*) as count FROM agent_events WHERE agent_id = ?',
+      [req.params.id]
+    );
+    res.json({ events, total: total?.count || 0 });
+  } catch (err) {
+    res.status(500).json({ error: '获取事件日志失败' });
   }
 });
 
