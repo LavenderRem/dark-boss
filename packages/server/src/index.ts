@@ -4,6 +4,7 @@ import { initDatabase, save } from './db/connection.js';
 import { seed } from './db/seed.js';
 import { createWsServer } from './ws/connection.js';
 import { config } from './utils/config.js';
+import { snapshotAll } from './services/performance-service.js';
 
 async function main() {
   // 初始化数据库
@@ -14,6 +15,10 @@ async function main() {
 
   // 定期保存（sql.js 是内存数据库，需要持久化到文件）
   setInterval(save, 30000);
+
+  // 每小时计算绩效快照
+  snapshotAll(); // 启动时立即计算一次
+  setInterval(snapshotAll, 60 * 60 * 1000);
 
   // 创建 Express 应用
   const app = createApp();

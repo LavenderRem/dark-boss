@@ -5,6 +5,8 @@ import { CanvasPage } from './pages/canvas/index.js';
 import { OrgChartPage } from './pages/org-chart/index.js';
 import { KanbanPage } from './pages/kanban/index.js';
 import { ChatPage } from './pages/chat/index.js';
+import { MarketPage } from './pages/market/index.js';
+import { PerformancePage } from './pages/performance/index.js';
 
 export default function App() {
   return (
@@ -16,8 +18,8 @@ export default function App() {
         <Route path="/org-chart" element={<OrgChartPage />} />
         <Route path="/kanban" element={<KanbanPage />} />
         <Route path="/chat" element={<ChatPage />} />
-        <Route path="/market" element={<div style={{ padding: 24, color: '#999' }}>招聘市场（开发中）</div>} />
-        <Route path="/performance" element={<div style={{ padding: 24, color: '#999' }}>绩效考核（开发中）</div>} />
+        <Route path="/market" element={<MarketPage />} />
+        <Route path="/performance" element={<PerformancePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

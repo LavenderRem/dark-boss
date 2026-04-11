@@ -11,6 +11,9 @@ import {
   CodeOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../api/client.js';
+import type { Agent } from '@dark-boss/shared';
 
 const { Sider, Header, Content } = Layout;
 
@@ -28,6 +31,15 @@ const menuItems = [
 export function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const { data: agents = [] } = useQuery({
+    queryKey: ['agents'],
+    queryFn: () => api.get<Agent[]>('/agents'),
+    refetchInterval: 30000,
+  });
+
+  const onlineCount = agents.filter(a => a.status !== 'offline').length;
+  const totalTokens = agents.reduce((sum, a) => sum + (a.tokensUsed || 0), 0);
 
   return (
     <Layout style={{ height: '100vh' }}>
@@ -72,8 +84,9 @@ export function AppLayout() {
             AI Agent 编排平台
           </span>
           <div style={{ display: 'flex', gap: 16, color: '#8c8c8c', fontSize: 13 }}>
-            <span>在线: 0</span>
-            <span>Token: 0</span>
+            <span>员工: {agents.length}</span>
+            <span>在线: {onlineCount}</span>
+            <span>Token: {totalTokens > 0 ? `${(totalTokens / 1000).toFixed(1)}k` : '0'}</span>
           </div>
         </Header>
         <Content style={{

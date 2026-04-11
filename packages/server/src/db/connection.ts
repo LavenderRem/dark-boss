@@ -190,6 +190,42 @@ function createTables() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_events_agent ON agent_events(agent_id)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_events_created ON agent_events(created_at)`);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS performance_snapshots (
+      id TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL REFERENCES agents(id),
+      period TEXT NOT NULL,
+      period_start INTEGER NOT NULL,
+      period_end INTEGER NOT NULL,
+      tasks_completed INTEGER DEFAULT 0,
+      tasks_failed INTEGER DEFAULT 0,
+      avg_completion_minutes REAL,
+      tokens_used INTEGER DEFAULT 0,
+      total_cost REAL DEFAULT 0,
+      efficiency_score REAL,
+      created_at INTEGER NOT NULL
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS performance_reports (
+      id TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL REFERENCES agents(id),
+      period TEXT NOT NULL,
+      period_start INTEGER NOT NULL,
+      period_end INTEGER NOT NULL,
+      summary TEXT,
+      strengths TEXT,
+      improvements TEXT,
+      score REAL,
+      created_at INTEGER NOT NULL
+    )
+  `);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_perf_snap_agent ON performance_snapshots(agent_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_perf_snap_period ON performance_snapshots(period_start)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_perf_report_agent ON performance_reports(agent_id)`);
+
   save();
 }
 

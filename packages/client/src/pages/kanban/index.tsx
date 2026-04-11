@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Card, Button, Modal, Form, Input, Select, Tag, Typography, Space, message, Dropdown } from 'antd';
+import { Card, Button, Modal, Form, Input, Select, Tag, Typography, Space, message, Dropdown, Skeleton } from 'antd';
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -114,12 +114,12 @@ export function KanbanPage() {
   const [editForm] = Form.useForm();
   const [defaultStatus, setDefaultStatus] = useState<TaskStatus>('todo');
 
-  const { data: tasks = [] } = useQuery({
+  const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['tasks'],
     queryFn: () => api.get<Task[]>('/tasks'),
   });
 
-  const { data: agents = [] } = useQuery({
+  const { data: agents = [], isLoading: agentsLoading } = useQuery({
     queryKey: ['agents'],
     queryFn: () => api.get<Agent[]>('/agents'),
   });
@@ -258,6 +258,16 @@ export function KanbanPage() {
         </Button>
       </div>
 
+      {tasksLoading || agentsLoading ? (
+        <div style={{ display: 'flex', gap: 12 }}>
+          {COLUMNS.map(col => (
+            <Card key={col.status} style={{ flex: 1, minWidth: 240, background: '#1a1a2e', borderRadius: 8 }}>
+              <Skeleton active />
+              <Skeleton active />
+            </Card>
+          ))}
+        </div>
+      ) : (
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -345,6 +355,7 @@ export function KanbanPage() {
           ) : null}
         </DragOverlay>
       </DndContext>
+      )}
 
       {/* 创建任务弹窗 */}
       <Modal

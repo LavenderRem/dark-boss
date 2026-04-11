@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Card, Tree, Button, Modal, Form, Input, Select, ColorPicker, Typography, Space, Dropdown, message, Tag } from 'antd';
+import { Card, Tree, Button, Modal, Form, Input, Select, ColorPicker, Typography, Space, Dropdown, message, Tag, Skeleton } from 'antd';
 import {
   PlusOutlined,
   DeleteOutlined,
@@ -73,12 +73,12 @@ export function OrgChartPage() {
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
 
-  const { data: departments = [] } = useQuery({
+  const { data: departments = [], isLoading: deptLoading } = useQuery({
     queryKey: ['departments'],
     queryFn: () => api.get<Department[]>('/departments'),
   });
 
-  const { data: agents = [] } = useQuery({
+  const { data: agents = [], isLoading: agentsLoading } = useQuery({
     queryKey: ['agents'],
     queryFn: () => api.get<Agent[]>('/agents'),
   });
@@ -262,7 +262,9 @@ export function OrgChartPage() {
         style={{ width: 380, background: '#1f1f1f', flexShrink: 0 }}
         styles={{ body: { padding: '8px 12px', overflow: 'auto', maxHeight: 'calc(100vh - 180px)' } }}
       >
-        {treeData.length === 0 ? (
+        {deptLoading || agentsLoading ? (
+          <div style={{ padding: 16 }}><Skeleton active /></div>
+        ) : treeData.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 40, color: '#595959' }}>
             暂无部门，点击上方按钮创建
           </div>

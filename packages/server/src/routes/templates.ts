@@ -21,16 +21,24 @@ router.post('/:id/install', (req, res) => {
     const template = queryOne('SELECT * FROM templates WHERE id = ?', [req.params.id]);
     if (!template) return res.status(404).json({ error: '模板不存在' });
 
-    const { cwd, name } = req.body as { cwd: string; name?: string };
+    const { cwd, name, model, departmentId } = req.body as {
+      cwd: string;
+      name?: string;
+      model?: 'sonnet' | 'opus' | 'haiku';
+      departmentId?: string;
+    };
     if (!cwd) return res.status(400).json({ error: '必须指定工作目录 (cwd)' });
 
     const agentId = uuid();
     const now = Date.now();
+    const agentModel = model || template.model || 'sonnet';
 
     run(
-      `INSERT INTO agents (id, name, role, cwd, model, permission_mode, status, custom_instructions, allowed_tools, mcp_servers, template_id, created_at, last_activity_at)
-       VALUES (?, ?, ?, ?, ?, 'bypass', 'offline', ?, ?, ?, ?, ?, ?)`,
-      [agentId, name || template.name, template.role, cwd, template.model || 'sonnet', template.custom_instructions, template.allowed_tools, template.mcp_servers, template.id, now, now]
+      `INSERT INTO agents (id, name, role, cwd, model, permission_mode, status, custom_instructions, allowed_tools, mcp_servers, template_id, department_id, created_at, last_activity_at)
+       VALUES (?, ?, ?, ?, ?, 'bypass', 'offline', ?, ?, ?, ?, ?, ?, ?)`,
+      [agentId, name || template.name, template.role, cwd, agentModel,
+        template.custom_instructions, template.allowed_tools, template.mcp_servers,
+        template.id, departmentId || null, now, now]
     );
 
     run('UPDATE templates SET install_count = install_count + 1 WHERE id = ?', [template.id]);
