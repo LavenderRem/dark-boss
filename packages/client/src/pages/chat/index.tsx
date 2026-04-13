@@ -12,6 +12,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client.js';
 import type { Agent } from '@dark-boss/shared';
 import { AGENT_ROLES } from '@dark-boss/shared';
+import { MarkdownRenderer } from '../../components/chat/markdown-renderer.js';
+import { StreamingMessage } from '../../components/chat/streaming-message.js';
 
 const { Title, Text } = Typography;
 
@@ -31,7 +33,7 @@ interface ChatMessage {
   sender_agent_id: string | null;
   content: string;
   mentions_agent_ids: string[] | null;
-  message_type: 'text' | 'system';
+  message_type: 'text' | 'system' | 'markdown';
   created_at: number;
 }
 
@@ -112,6 +114,7 @@ export function ChatPage() {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [messageInput, setMessageInput] = useState('');
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [streamingAgentId, setStreamingAgentId] = useState<string | null>(null);
   const [form] = Form.useForm();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -161,7 +164,7 @@ export function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // WebSocket 实时接收新消息
+  // WebSocket 实时接收新消息 + Agent 流式回复
   useEffect(() => {
     const unsub = onWsMessage((msg) => {
       if (msg.type === 'chat:message') {
@@ -170,9 +173,27 @@ export function ChatPage() {
           queryClient.invalidateQueries({ queryKey: ['messages', selectedChannel] });
         }
       }
+      // Agent 开始流式回复
+      if (msg.type === 'agent:output') {
+        const payload = msg.payload as { agentId?: string; channelId?: string };
+        if (payload.channelId === selectedChannel && payload.agentId) {
+          setStreamingAgentId(payload.agentId);
+        }
+      }
+      // Agent 回复完成
+      if (msg.type === 'agent:complete') {
+        const payload = msg.payload as { agentId?: string };
+        if (payload.agentId === streamingAgentId) {
+          // 延迟清除流式状态，等待最终消息通过 chat:message 到达
+          setTimeout(() => setStreamingAgentId(null), 500);
+        }
+      }
+      if (msg.type === 'agent:error') {
+        setStreamingAgentId(null);
+      }
     });
     return unsub;
-  }, [selectedChannel, queryClient]);
+  }, [selectedChannel, queryClient, streamingAgentId]);
 
   // 提取 @提及 的 agent ids
   const extractMentions = (text: string): string[] => {
@@ -365,12 +386,23 @@ export function ChatPage() {
                           lineHeight: 1.6,
                           wordBreak: 'break-word',
                         }}>
-                          {renderContent(msg.content, agents)}
+                          {msg.message_type === 'markdown' || (msg.sender_type === 'agent' && msg.message_type !== 'system')
+                            ? <MarkdownRenderer content={msg.content} />
+                            : renderContent(msg.content, agents)
+                          }
                         </div>
                       </div>
                     </div>
                   );
                 })
+              )}
+              {/* 流式回复中的 Agent 消息 */}
+              {streamingAgentId && selectedChannel && (
+                <StreamingMessage
+                  agentId={streamingAgentId}
+                  agents={agents}
+                  onWsMessage={onWsMessage}
+                />
               )}
               <div ref={messagesEndRef} />
             </div>

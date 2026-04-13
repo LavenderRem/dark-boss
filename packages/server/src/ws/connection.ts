@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Server } from 'http';
 import type { WsMessage } from '@dark-boss/shared';
+import { handleAgentMention, interruptAgentReply } from '../services/chat-agent-service.js';
 
 // 已连接的客户端
 const clients = new Set<WebSocket>();
@@ -36,9 +37,32 @@ function handleClientMessage(_ws: WebSocket, msg: WsMessage) {
   switch (msg.type) {
     case 'agent:subscribe':
     case 'agent:unsubscribe':
+      // 订阅/取消订阅 Agent 输出
+      console.log(`[WS] 收到 ${msg.type}，payload:`, JSON.stringify(msg.payload).slice(0, 100));
+      break;
+    case 'agent:message': {
+      // 处理发送给 Agent 的消息（通过 WebSocket 触发回复）
+      const payload = msg.payload as {
+        channelId: string;
+        content: string;
+        mentionsAgentIds?: string[];
+      };
+      if (payload.mentionsAgentIds && payload.mentionsAgentIds.length > 0) {
+        handleAgentMention(payload.channelId, payload.mentionsAgentIds, payload.content);
+      }
+      break;
+    }
+    case 'agent:interrupt': {
+      // 中断 Agent 回复
+      const payload = msg.payload as { agentId: string };
+      if (payload.agentId) {
+        interruptAgentReply(payload.agentId);
+      }
+      break;
+    }
     case 'workflow:execute':
     case 'workflow:pause':
-      // 后续接入 Agent SDK 和执行引擎时实现
+      // 后续接入工作流执行引擎时实现
       console.log(`[WS] 收到 ${msg.type}，payload:`, JSON.stringify(msg.payload).slice(0, 100));
       break;
     default:

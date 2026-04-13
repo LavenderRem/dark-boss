@@ -1,5 +1,6 @@
 import { queryAll, queryOne, run } from '../db/connection.js';
 import { v4 as uuid } from 'uuid';
+import { singleQuery, isSdkAvailable } from './claude-client.js';
 
 // 计算单个 Agent 的绩效指标
 export function calculateAgentMetrics(agentId: string, periodStart: number, periodEnd: number) {
@@ -284,8 +285,8 @@ export function getTeamTrend(days: number = 7) {
   );
 }
 
-// 生成（模拟）AI 绩效报告
-export function generateReport(agentId: string, period: 'weekly' | 'monthly' = 'weekly') {
+// 生成 AI 绩效报告（接入 Claude Code SDK）
+export async function generateReport(agentId: string, period: 'weekly' | 'monthly' = 'weekly') {
   const now = Date.now();
   const periodDays = period === 'weekly' ? 7 : 30;
   const periodStart = now - periodDays * 24 * 60 * 60 * 1000;
@@ -298,7 +299,115 @@ export function generateReport(agentId: string, period: 'weekly' | 'monthly' = '
 
   const metrics = calculateAgentMetrics(agentId, periodStart, now);
 
-  // 模板化生成报告内容
+  let summary: string;
+  let strengths: string[];
+  let improvements: string[];
+  let score: number;
+
+  // 尝试使用 Claude SDK 生成智能报告
+  if (isSdkAvailable()) {
+    try {
+      const completionRate = metrics.tasksCompleted + metrics.tasksFailed > 0
+        ? Math.round(metrics.tasksCompleted / (metrics.tasksCompleted + metrics.tasksFailed) * 100)
+        : 0;
+
+      const prompt = `请根据以下 AI Agent 绩效数据，生成一份专业的绩效分析报告。
+
+Agent 信息：
+- 名称：${agent.name}
+- 角色：${agent.role}
+- 统计周期：近 ${periodDays} 天
+
+绩效指标：
+- 完成任务数：${metrics.tasksCompleted}
+- 失败任务数：${metrics.tasksFailed}
+- 平均完成时间：${metrics.avgCompletionMinutes !== null ? Math.round(metrics.avgCompletionMinutes) + ' 分钟' : '暂无数据'}
+- Token 消耗：${metrics.tokensUsed}
+- 总费用：$${metrics.totalCost.toFixed(2)}
+- 效率评分：${metrics.efficiencyScore ?? '暂无'} / 100
+- 任务完成率：${completionRate}%
+
+请用中文输出 JSON 格式的报告，严格遵循以下格式（不要添加任何其他文本）：
+{
+  "summary": "一段 2-3 句话的绩效总结",
+  "strengths": ["优势1", "优势2", "优势3"],
+  "improvements": ["改进建议1", "改进建议2"],
+  "score": 85
+}
+
+要求：
+- summary 需要包含具体数据引用
+- strengths 列出 2-3 个优势
+- improvements 列出 1-2 个具体可操作的改进建议
+- score 为 0-100 的整数评分，需与效率评分逻辑一致`;
+
+      const result = await singleQuery(prompt, 'haiku', '你是一名专业的 AI Agent 绩效评估专家。请根据数据生成客观、专业的绩效分析报告。');
+
+      // 解析 JSON 响应
+      const jsonMatch = result.result.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]) as {
+          summary: string;
+          strengths: string[];
+          improvements: string[];
+          score: number;
+        };
+        summary = parsed.summary;
+        strengths = parsed.strengths;
+        improvements = parsed.improvements;
+        score = Math.max(0, Math.min(100, parsed.score));
+      } else {
+        // JSON 解析失败，使用原始文本
+        summary = result.result;
+        strengths = ['AI 生成了详细的分析报告'];
+        improvements = ['建议进一步分析报告内容'];
+        score = metrics.efficiencyScore ?? 50;
+      }
+    } catch (err) {
+      console.warn('[绩效报告] Claude SDK 调用失败，回退到模板化生成:', err instanceof Error ? err.message : err);
+      ({ summary, strengths, improvements, score } = generateTemplateReport(agent, metrics, periodDays));
+    }
+  } else {
+    // 无 API Key，使用模板化生成
+    ({ summary, strengths, improvements, score } = generateTemplateReport(agent, metrics, periodDays));
+  }
+
+  // 检查是否已有报告（同周期）
+  const existing = queryOne<{ id: string }>(
+    `SELECT id FROM performance_reports
+     WHERE agent_id = ? AND period = ? AND period_start >= ?
+     ORDER BY created_at DESC LIMIT 1`,
+    [agentId, period, periodStart]
+  );
+
+  if (existing) {
+    run(
+      `UPDATE performance_reports
+       SET summary = ?, strengths = ?, improvements = ?, score = ?
+       WHERE id = ?`,
+      [summary, JSON.stringify(strengths), JSON.stringify(improvements), score, existing.id]
+    );
+    return queryOne('SELECT * FROM performance_reports WHERE id = ?', [existing.id]);
+  }
+
+  const id = uuid();
+  run(
+    `INSERT INTO performance_reports
+     (id, agent_id, period, period_start, period_end, summary, strengths, improvements, score, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, agentId, period, periodStart, now, summary, JSON.stringify(strengths),
+      JSON.stringify(improvements), score, now]
+  );
+
+  return queryOne('SELECT * FROM performance_reports WHERE id = ?', [id]);
+}
+
+// 模板化报告生成（降级方案）
+function generateTemplateReport(
+  agent: { name: string; role: string },
+  metrics: ReturnType<typeof calculateAgentMetrics>,
+  periodDays: number,
+) {
   const completionRate = metrics.tasksCompleted + metrics.tasksFailed > 0
     ? Math.round(metrics.tasksCompleted / (metrics.tasksCompleted + metrics.tasksFailed) * 100)
     : 0;
@@ -333,34 +442,5 @@ export function generateReport(agentId: string, period: 'weekly' | 'monthly' = '
 
   const score = metrics.efficiencyScore ?? 50;
 
-  // 检查是否已有报告（同周期）
-  const existing = queryOne<{ id: string }>(
-    `SELECT id FROM performance_reports
-     WHERE agent_id = ? AND period = ? AND period_start >= ?
-     ORDER BY created_at DESC LIMIT 1`,
-    [agentId, period, periodStart]
-  );
-
-  if (existing) {
-    // 更新已有报告
-    run(
-      `UPDATE performance_reports
-       SET summary = ?, strengths = ?, improvements = ?, score = ?
-       WHERE id = ?`,
-      [summary, JSON.stringify(strengths), JSON.stringify(improvements), score, existing.id]
-    );
-    return queryOne('SELECT * FROM performance_reports WHERE id = ?', [existing.id]);
-  }
-
-  // 创建新报告
-  const id = uuid();
-  run(
-    `INSERT INTO performance_reports
-     (id, agent_id, period, period_start, period_end, summary, strengths, improvements, score, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, agentId, period, periodStart, now, summary, JSON.stringify(strengths),
-      JSON.stringify(improvements), score, now]
-  );
-
-  return queryOne('SELECT * FROM performance_reports WHERE id = ?', [id]);
+  return { summary, strengths, improvements, score };
 }

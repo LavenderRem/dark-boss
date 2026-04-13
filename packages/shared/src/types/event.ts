@@ -98,4 +98,5 @@ export interface ChatMessagePayload {
   senderType: 'agent' | 'user' | 'system';
   senderAgentId?: string;
   content: string;
+  messageType?: 'text' | 'markdown' | 'system';
 }

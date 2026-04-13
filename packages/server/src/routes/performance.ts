@@ -63,12 +63,12 @@ router.get('/agents/:id', (req, res) => {
 });
 
 // 获取/生成 AI 绩效报告
-router.get('/agents/:id/report', (req, res) => {
+router.get('/agents/:id/report', async (req, res) => {
   try {
     const { id } = req.params;
     const period = (req.query.period as 'weekly' | 'monthly') || 'weekly';
 
-    const report = generateReport(id, period);
+    const report = await generateReport(id, period);
     if (!report) return res.status(404).json({ error: 'Agent 不存在' });
 
     res.json(report);

@@ -108,9 +108,100 @@ pnpm --filter @dark-boss/client add recharts
 - [x] 组织架构拖拽排序部门（Tree draggable + onDrop + move API）
 - [x] 执行日志查看器面板（员工详情 Tabs + agent_events 表查询）
 - [x] 前端 build chunk 优化（Vite manualChunks 分包：react/antd/flow/charts/dnd）
-- [ ] AI 报告接入 Claude Agent SDK（当前为模板化生成）
-- [ ] Agent 自动回复消息（接入 Claude SDK）
-- [ ] 消息附件/富文本支持
+- [x] AI 报告接入 Claude Code SDK（降级到模板化生成作为回退）
+- [x] Agent 自动回复消息（接入 Claude Code CLI 子进程 + WebSocket 流式推送）
+- [x] 消息富文本/Markdown 支持（react-markdown + 代码高亮 + 流式渲染）
+
+---
+
+## Phase 5 完成清单：Claude Code SDK 集成
+
+### 后端（已完成）
+- [x] Claude Code SDK 封装层 `claude-client.ts`（CLI 子进程调用 + 会话管理）
+  - `streamQuery()` — 流式调用（聊天回复），解析 stream-json 输出
+  - `singleQuery()` — 单次调用（绩效报告），解析 json 输出
+  - 会话管理（agentId -> sessionId 映射）
+  - 进程管理（abort 中断 + 超时控制）
+- [x] 绩效报告 AI 生成 `performance-service.ts`
+  - `generateReport()` 改为异步
+  - 接入 Claude Code CLI 生成智能报告
+  - 降级策略：API Key 未配置或调用失败时回退到模板化生成
+- [x] Agent 聊天自动回复服务 `chat-agent-service.ts`
+  - `handleAgentMention()` — @ 提及触发 Agent 回复
+  - 流式 WebSocket 推送（agent:output / agent:complete / agent:status）
+  - 并发控制（同一 Agent 同时只处理一个请求）
+  - 状态管理（working -> idle/error）
+- [x] WebSocket 扩展 `connection.ts`
+  - 新增 `agent:message` 事件处理（触发 Agent 回复）
+  - 新增 `agent:interrupt` 事件处理（中断 Agent 回复）
+- [x] 聊天路由扩展 `chat.ts`
+  - 消息发送后异步触发 Agent 回复
+  - 支持 `messageType` 字段传递
+
+### 前端（已完成）
+- [x] Markdown 渲染组件 `markdown-renderer.tsx`
+  - react-markdown + remark-gfm + rehype-highlight
+  - 暗色主题适配
+  - 代码块带语言标签和复制按钮
+  - 自定义表格、引用、列表样式
+- [x] 流式消息组件 `streaming-message.tsx`
+  - 监听 agent:output 事件，累积文本
+  - 实时 Markdown 渲染
+  - 打字指示器动画
+  - 完成/错误状态处理
+- [x] 聊天页面增强 `chat/index.tsx`
+  - Agent 消息自动使用 Markdown 渲染
+  - 流式回复实时显示
+  - agent:output / agent:complete WebSocket 事件处理
+
+### 新增文件
+```
+packages/server/src/services/claude-client.ts        # Claude Code CLI 封装层
+packages/server/src/services/chat-agent-service.ts    # Agent 聊天自动回复服务
+packages/client/src/components/chat/markdown-renderer.tsx  # Markdown 渲染组件
+packages/client/src/components/chat/streaming-message.tsx  # 流式消息组件
+```
+
+### 修改文件
+```
+packages/server/src/utils/config.ts               # 新增 anthropicApiKey 配置
+packages/server/src/index.ts                      # API Key 启动检查 + 警告
+packages/server/src/services/performance-service.ts  # generateReport 改异步 + SDK 调用
+packages/server/src/routes/performance.ts          # 路由加 async
+packages/server/src/ws/connection.ts               # 新增 agent:message/interrupt 事件
+packages/server/src/routes/chat.ts                 # 消息后触发 Agent 回复
+packages/shared/src/types/event.ts                 # ChatMessagePayload 增加 messageType
+packages/client/src/pages/chat/index.tsx           # Markdown 渲染 + 流式消息
+```
+
+### 新增依赖
+```bash
+pnpm --filter @dark-boss/client add react-markdown remark-gfm rehype-highlight
+```
+
+### 使用说明
+
+1. 设置环境变量：
+```bash
+export ANTHROPIC_API_KEY=your_api_key_here
+```
+
+2. 确保 `claude` CLI 已全局安装（`npm install -g @anthropic-ai/claude-code`）
+
+3. 启动服务：
+```bash
+pnpm dev
+```
+
+4. 在聊天中 @ 一个 Agent 即可触发自动回复
+5. 点击绩效报告按钮可生成 AI 分析报告
+
+### 待优化（Phase 5 遗留）
+- [ ] Agent 工作目录选择器（当前使用默认 /workspace/project1）
+- [ ] 消息附件/文件上传功能
+- [ ] Agent 回复历史上下文优化（当前最近 20 条）
+- [ ] 多轮对话支持（Agent 记忆跨消息上下文）
+- [ ] Agent 回复成本统计面板
 
 ### 本轮新增/修改文件
 ```

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { queryAll, queryOne, run } from '../db/connection.js';
 import { v4 as uuid } from 'uuid';
+import { handleAgentMention } from '../services/chat-agent-service.js';
 
 const router = Router();
 
@@ -93,7 +94,13 @@ router.post('/channels/:id/messages', async (req, res) => {
       senderType,
       senderAgentId: senderAgentId || null,
       content,
+      messageType,
     });
+
+    // 异步触发 Agent 回复（不阻塞 HTTP 响应）
+    if (mentionsAgentIds && mentionsAgentIds.length > 0) {
+      handleAgentMention(req.params.id, mentionsAgentIds, content);
+    }
 
     res.status(201).json(message);
   } catch (err) {
