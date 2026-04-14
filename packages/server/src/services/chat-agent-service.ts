@@ -179,6 +179,9 @@ ${historyText}
         [totalTokens, totalCost, agentId]
       );
 
+      // 通知前端流式回复结束
+      broadcast('agent:complete', { agentId, channelId });
+
       console.log(`[聊天Agent] ${agent.name} 回复完成，${totalTokens} tokens，$${totalCost.toFixed(4)}`);
     }
   } catch (err) {

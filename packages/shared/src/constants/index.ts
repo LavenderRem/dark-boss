@@ -1,4 +1,4 @@
-import type { AgentRole } from './agent.js';
+import type { AgentRole } from '../types/agent.js';
 
 // 默认 Agent 角色定义
 export const AGENT_ROLES: Record<AgentRole, { label: string; icon: string; color: string }> = {

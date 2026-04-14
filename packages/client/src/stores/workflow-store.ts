@@ -16,8 +16,11 @@ interface WorkflowState {
   isDirty: boolean;
 
   // 执行状态
+  isRunning: boolean;
   executingNodeId: string | null;
   activeEdgeIds: Set<string>;
+  nodeResults: Map<string, string>;
+  workflowResult: string | null;
 
   // Actions
   setWorkflow: (workflow: Workflow) => void;
@@ -28,8 +31,11 @@ interface WorkflowState {
   onConnect: (connection: Connection) => void;
   addNode: (node: Node) => void;
   removeNode: (nodeId: string) => void;
+  setRunning: (running: boolean) => void;
   setExecutingNode: (nodeId: string | null) => void;
   setActiveEdges: (edgeIds: Set<string>) => void;
+  setNodeResult: (nodeId: string, result: string) => void;
+  setWorkflowResult: (result: string | null) => void;
   markDirty: () => void;
   markSaved: () => void;
   reset: () => void;
@@ -42,8 +48,11 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   nodes: [],
   edges: [],
   isDirty: false,
+  isRunning: false,
   executingNodeId: null,
   activeEdgeIds: new Set(),
+  nodeResults: new Map(),
+  workflowResult: null,
 
   setWorkflow: (workflow) => set({
     workflowId: workflow.id,
@@ -64,8 +73,11 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
       type: 'data',
     })),
     isDirty: false,
+    isRunning: false,
     executingNodeId: null,
     activeEdgeIds: new Set(),
+    nodeResults: new Map(),
+    workflowResult: null,
   }),
 
   setNodes: (nodes) => set({ nodes }),
@@ -91,8 +103,15 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     isDirty: true,
   }),
 
+  setRunning: (running) => set({ isRunning: running }),
   setExecutingNode: (nodeId) => set({ executingNodeId: nodeId }),
   setActiveEdges: (edgeIds) => set({ activeEdgeIds: edgeIds }),
+  setNodeResult: (nodeId, result) => {
+    const newMap = new Map(get().nodeResults);
+    newMap.set(nodeId, result);
+    set({ nodeResults: newMap });
+  },
+  setWorkflowResult: (result) => set({ workflowResult: result }),
   markDirty: () => set({ isDirty: true }),
   markSaved: () => set({ isDirty: false }),
   reset: () => set({
@@ -102,7 +121,10 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     nodes: [],
     edges: [],
     isDirty: false,
+    isRunning: false,
     executingNodeId: null,
     activeEdgeIds: new Set(),
+    nodeResults: new Map(),
+    workflowResult: null,
   }),
 }));

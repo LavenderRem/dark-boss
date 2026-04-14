@@ -1,11 +1,12 @@
-import { Button, Space, Tooltip } from 'antd';
+import { Button, Space, Tooltip, Tag } from 'antd';
 import {
   SaveOutlined,
   PlayCircleOutlined,
   PauseCircleOutlined,
   ApartmentOutlined,
   PlusOutlined,
-  UndoOutlined,
+  EyeOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
 
 interface FlowToolbarProps {
@@ -14,6 +15,7 @@ interface FlowToolbarProps {
   onPause: () => void;
   onAutoLayout: () => void;
   onAddWorkflow: () => void;
+  onViewResult: () => void;
   isRunning?: boolean;
   isDirty?: boolean;
   workflowName?: string;
@@ -25,6 +27,7 @@ export function FlowToolbar({
   onPause,
   onAutoLayout,
   onAddWorkflow,
+  onViewResult,
   isRunning,
   isDirty,
   workflowName,
@@ -38,17 +41,21 @@ export function FlowToolbar({
       background: '#1a1a1a',
       borderBottom: '1px solid #303030',
     }}>
-      {/* 左侧：工作流名称 */}
+      {/* 左侧：工作流名称 + 运行状态 */}
       <div style={{
-        color: '#e8e8e8',
-        fontWeight: 600,
-        fontSize: 14,
         display: 'flex',
         alignItems: 'center',
         gap: 8,
       }}>
-        {workflowName || '未命名工作流'}
+        <span style={{ color: '#e8e8e8', fontWeight: 600, fontSize: 14 }}>
+          {workflowName || '未命名工作流'}
+        </span>
         {isDirty && <span style={{ color: '#faad14', fontSize: 11 }}>(未保存)</span>}
+        {isRunning && (
+          <Tag icon={<LoadingOutlined spin />} color="processing" style={{ fontSize: 11, margin: 0 }}>
+            执行中
+          </Tag>
+        )}
       </div>
 
       {/* 右侧：操作按钮 */}
@@ -62,6 +69,10 @@ export function FlowToolbar({
         <div style={{ width: 1, height: 20, background: '#303030', margin: '0 4px' }} />
         <Tooltip title="自动布局">
           <Button type="text" icon={<ApartmentOutlined />} onClick={onAutoLayout} size="small" />
+        </Tooltip>
+        <div style={{ width: 1, height: 20, background: '#303030', margin: '0 4px' }} />
+        <Tooltip title="查看结果">
+          <Button type="text" icon={<EyeOutlined />} onClick={onViewResult} size="small" />
         </Tooltip>
         <div style={{ width: 1, height: 20, background: '#303030', margin: '0 4px' }} />
         {isRunning ? (

@@ -44,7 +44,7 @@ export function PerformancePage() {
 
   const { data: trendSnapshots = [] } = useQuery({
     queryKey: ['performance-trend', trendDays],
-    queryFn: () => api.get<{ period_start: number; tasks_completed: number; tokens_used: number; total_cost: number; avg_efficiency: number }[]>(`/performance/trend?days=${trendDays}`),
+    queryFn: () => api.get<{ periodStart: number; tasksCompleted: number; tokensUsed: number; totalCost: number; avgEfficiency: number }[]>(`/performance/trend?days=${trendDays}`),
   });
 
   const { data: report, isLoading: reportLoading } = useQuery({
@@ -73,11 +73,11 @@ export function PerformancePage() {
   // 趋势数据：优先使用真实快照，回退到 Agent 聚合
   const trendData = trendSnapshots.length > 0
     ? trendSnapshots.map(s => ({
-        date: new Date(s.period_start).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }),
-        tasks: s.tasks_completed,
-        tokens: Math.round(s.tokens_used / 1000),
-        cost: Math.round(s.total_cost * 100) / 100,
-        efficiency: Math.round(s.avg_efficiency),
+        date: new Date(s.periodStart).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' }),
+        tasks: s.tasksCompleted,
+        tokens: Math.round(s.tokensUsed / 1000),
+        cost: Math.round(s.totalCost * 100) / 100,
+        efficiency: Math.round(s.avgEfficiency),
       }))
     : (agents || []).map(a => ({
         date: a.agentName,

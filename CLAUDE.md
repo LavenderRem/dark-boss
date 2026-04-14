@@ -84,6 +84,13 @@ pnpm dev
 |------|------|------|
 | GET | /api/health | 健康检查 |
 
+## 前后端数据约定
+
+- 数据库使用 **snake_case**（如 `department_id`、`created_at`）
+- API 客户端（`packages/client/src/api/client.ts`）自动将响应从 snake_case 转为 **camelCase**
+- 前端统一使用 camelCase（如 `departmentId`、`createdAt`），与共享类型一致
+- 前端请求体（发给后端）使用 camelCase，后端路由层负责映射到 snake_case 写入数据库
+
 ## 项目结构
 
 ```

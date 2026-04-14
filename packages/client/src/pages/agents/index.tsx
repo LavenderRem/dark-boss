@@ -361,8 +361,8 @@ function AgentEventsPanel({ agentId }: { agentId: string }) {
   const columns = [
     {
       title: '时间',
-      dataIndex: 'created_at',
-      key: 'created_at',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
       width: 150,
       render: (ts: number) => (
         <span style={{ color: '#8c8c8c', fontSize: 12 }}>
@@ -372,8 +372,8 @@ function AgentEventsPanel({ agentId }: { agentId: string }) {
     },
     {
       title: '事件',
-      dataIndex: 'event_type',
-      key: 'event_type',
+      dataIndex: 'eventType',
+      key: 'eventType',
       width: 120,
       render: (type: string) => {
         const colorMap: Record<string, string> = {
@@ -389,15 +389,15 @@ function AgentEventsPanel({ agentId }: { agentId: string }) {
     },
     {
       title: '工具',
-      dataIndex: 'tool_name',
-      key: 'tool_name',
+      dataIndex: 'toolName',
+      key: 'toolName',
       width: 100,
       render: (v: string | null) => v || '-',
     },
     {
       title: '内容',
-      dataIndex: 'text_content',
-      key: 'text_content',
+      dataIndex: 'textContent',
+      key: 'textContent',
       ellipsis: true,
       render: (v: string | null) => (
         <span style={{ color: '#bfbfbf', fontSize: 12 }}>{v || '-'}</span>
@@ -426,9 +426,9 @@ function AgentEventsPanel({ agentId }: { agentId: string }) {
 
 interface AgentEvent {
   id: number;
-  agent_id: string;
-  event_type: string;
-  tool_name: string | null;
-  text_content: string | null;
-  created_at: number;
+  agentId: string;
+  eventType: string;
+  toolName: string | null;
+  textContent: string | null;
+  createdAt: number;
 }

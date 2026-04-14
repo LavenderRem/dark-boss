@@ -21,20 +21,20 @@ interface ChatChannel {
   id: string;
   name: string;
   type: 'team' | 'direct' | 'department';
-  department_id: string | null;
-  participant_agent_ids: string[] | null;
-  created_at: number;
+  departmentId: string | null;
+  participantAgentIds: string[] | null;
+  createdAt: number;
 }
 
 interface ChatMessage {
   id: string;
-  channel_id: string;
-  sender_type: 'user' | 'agent' | 'system';
-  sender_agent_id: string | null;
+  channelId: string;
+  senderType: 'user' | 'agent' | 'system';
+  senderAgentId: string | null;
   content: string;
-  mentions_agent_ids: string[] | null;
-  message_type: 'text' | 'system' | 'markdown';
-  created_at: number;
+  mentionsAgentIds: string[] | null;
+  messageType: 'text' | 'system' | 'markdown';
+  createdAt: number;
 }
 
 const CHANNEL_TYPE_MAP: Record<string, { icon: React.ReactNode; color: string }> = {
@@ -57,6 +57,8 @@ function connectWs() {
     try {
       const msg = JSON.parse(event.data);
       wsListeners.forEach(fn => fn(msg));
+      // 同时派发到 window，供其他页面（如工作流画布）监听
+      window.dispatchEvent(new CustomEvent('ws:message', { detail: msg }));
     } catch { /* ignore */ }
   };
 
@@ -168,9 +170,13 @@ export function ChatPage() {
   useEffect(() => {
     const unsub = onWsMessage((msg) => {
       if (msg.type === 'chat:message') {
-        const payload = msg.payload as { channelId?: string; messageId?: string };
+        const payload = msg.payload as { channelId?: string; senderAgentId?: string };
         if (payload.channelId === selectedChannel) {
           queryClient.invalidateQueries({ queryKey: ['messages', selectedChannel] });
+          // 保存的消息到达时，立即移除流式组件，避免同一条消息显示两次
+          if (payload.senderAgentId && payload.senderAgentId === streamingAgentId) {
+            setStreamingAgentId(null);
+          }
         }
       }
       // Agent 开始流式回复
@@ -180,12 +186,11 @@ export function ChatPage() {
           setStreamingAgentId(payload.agentId);
         }
       }
-      // Agent 回复完成
+      // Agent 回复完成（兜底）
       if (msg.type === 'agent:complete') {
         const payload = msg.payload as { agentId?: string };
         if (payload.agentId === streamingAgentId) {
-          // 延迟清除流式状态，等待最终消息通过 chat:message 到达
-          setTimeout(() => setStreamingAgentId(null), 500);
+          setStreamingAgentId(null);
         }
       }
       if (msg.type === 'agent:error') {
@@ -230,8 +235,8 @@ export function ChatPage() {
 
   const currentChannel = channels.find(c => c.id === selectedChannel);
   const channelParticipants = useMemo(() => {
-    if (!currentChannel?.participant_agent_ids) return [];
-    return agents.filter(a => currentChannel.participant_agent_ids!.includes(a.id));
+    if (!currentChannel?.participantAgentIds) return [];
+    return agents.filter(a => currentChannel.participantAgentIds!.includes(a.id));
   }, [currentChannel, agents]);
 
   return (
@@ -278,9 +283,9 @@ export function ChatPage() {
                     {channel.name}
                   </Text>
                 </div>
-                {channel.participant_agent_ids && (
+                {channel.participantAgentIds && (
                   <div style={{ marginTop: 4, marginLeft: 24, fontSize: 11, color: '#595959' }}>
-                    {channel.participant_agent_ids.length} 名成员
+                    {channel.participantAgentIds.length} 名成员
                   </div>
                 )}
               </div>
@@ -328,11 +333,11 @@ export function ChatPage() {
                 />
               ) : (
                 messages.map(msg => {
-                  const senderAgent = msg.sender_agent_id
-                    ? agents.find(a => a.id === msg.sender_agent_id)
+                  const senderAgent = msg.senderAgentId
+                    ? agents.find(a => a.id === msg.senderAgentId)
                     : null;
-                  const isUser = msg.sender_type === 'user';
-                  const isSystem = msg.sender_type === 'system';
+                  const isUser = msg.senderType === 'user';
+                  const isSystem = msg.senderType === 'system';
 
                   if (isSystem) {
                     return (
@@ -375,7 +380,7 @@ export function ChatPage() {
                           <Text style={{ color: '#bfbfbf', fontSize: 13, fontWeight: 500 }}>
                             {isUser ? '你' : senderAgent?.name || '未知'}
                           </Text>
-                          <Text style={{ color: '#595959', fontSize: 11 }}>{formatTime(msg.created_at)}</Text>
+                          <Text style={{ color: '#595959', fontSize: 11 }}>{formatTime(msg.createdAt)}</Text>
                         </div>
                         <div style={{
                           background: isUser ? '#1890ff22' : '#2a2a2a',
@@ -386,7 +391,7 @@ export function ChatPage() {
                           lineHeight: 1.6,
                           wordBreak: 'break-word',
                         }}>
-                          {msg.message_type === 'markdown' || (msg.sender_type === 'agent' && msg.message_type !== 'system')
+                          {msg.messageType === 'markdown' || (msg.senderType === 'agent' && msg.messageType !== 'system')
                             ? <MarkdownRenderer content={msg.content} />
                             : renderContent(msg.content, agents)
                           }

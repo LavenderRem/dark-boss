@@ -29,10 +29,10 @@ interface Template {
   icon: string;
   color: string;
   role: string;
-  custom_instructions: string;
-  allowed_tools: string;
+  customInstructions: string;
+  allowedTools: string;
   model: string;
-  install_count: number;
+  installCount: number;
   rating: number;
 }
 
@@ -198,7 +198,7 @@ export function MarketPage() {
                   <div style={{ marginBottom: 12 }}>
                     {(() => {
                       try {
-                        const tools: string[] = JSON.parse(template.allowed_tools || '[]');
+                        const tools: string[] = JSON.parse(template.allowedTools || '[]');
                         return tools.slice(0, 4).map(tool => (
                           <Tag key={tool} style={{ fontSize: 11, marginBottom: 2, background: '#303030', borderColor: '#404040' }}>
                             {tool}
@@ -208,7 +208,7 @@ export function MarketPage() {
                     })()}
                     {(() => {
                       try {
-                        const tools: string[] = JSON.parse(template.allowed_tools || '[]');
+                        const tools: string[] = JSON.parse(template.allowedTools || '[]');
                         return tools.length > 4
                           ? <Tag style={{ fontSize: 11, background: '#303030', borderColor: '#404040' }}>+{tools.length - 4}</Tag>
                           : null;
@@ -226,7 +226,7 @@ export function MarketPage() {
                 }}>
                   <Space size={12}>
                     <span style={{ color: '#8c8c8c', fontSize: 12 }}>
-                      <DownloadOutlined /> {template.install_count}
+                      <DownloadOutlined /> {template.installCount}
                     </span>
                     <Rate
                       disabled={rateMutation.isPending}
@@ -281,7 +281,7 @@ export function MarketPage() {
                 <Text style={{ color: '#8c8c8c', fontSize: 12 }}>
                   默认工具: {(() => {
                     try {
-                      return JSON.parse(installModal.allowed_tools || '[]').length + ' 个';
+                      return JSON.parse(installModal.allowedTools || '[]').length + ' 个';
                     } catch { return '0 个'; }
                   })()}
                 </Text>

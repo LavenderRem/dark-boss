@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { queryAll, queryOne, run } from '../db/connection.js';
 import { v4 as uuid } from 'uuid';
-import type { CreateWorkflowRequest, UpdateWorkflowRequest, WorkflowNode, WorkflowEdge } from '@dark-boss/shared';
+import type { CreateWorkflowRequest, UpdateWorkflowRequest } from '@dark-boss/shared';
 
 const router = Router();
 
@@ -52,6 +52,7 @@ router.post('/', (req, res) => {
     );
 
     const workflow = queryOne('SELECT * FROM workflows WHERE id = ?', [id]);
+    if (!workflow) return res.status(500).json({ error: '创建工作流失败' });
     res.status(201).json({
       ...workflow,
       nodes: JSON.parse(workflow.nodes as string || '[]'),
@@ -86,6 +87,7 @@ router.patch('/:id', (req, res) => {
     run(`UPDATE workflows SET ${sets.join(', ')} WHERE id = ?`, vals);
 
     const updated = queryOne('SELECT * FROM workflows WHERE id = ?', [req.params.id]);
+    if (!updated) return res.status(404).json({ error: '工作流不存在' });
     res.json({
       ...updated,
       nodes: JSON.parse(updated.nodes as string || '[]'),
@@ -119,9 +121,12 @@ router.post('/:id/execute', async (req, res) => {
     const nodes = typeof existing.nodes === 'string' ? JSON.parse(existing.nodes) : existing.nodes;
     if (!nodes || nodes.length === 0) return res.status(400).json({ error: '工作流没有节点，请先添加节点' });
 
+    // 从请求体获取用户输入
+    const { input } = req.body as { input?: string };
+
     // 异步执行，立即返回
     const { executeWorkflow } = await import('../services/workflow-engine.js');
-    executeWorkflow(req.params.id).catch(err => {
+    executeWorkflow(req.params.id, input || '').catch(err => {
       console.error('工作流执行失败:', err);
     });
 

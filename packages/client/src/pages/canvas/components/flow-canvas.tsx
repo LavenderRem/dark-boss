@@ -1,4 +1,4 @@
-import { useCallback, useRef, useMemo } from 'react';
+import { useCallback, useRef, useMemo, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -6,10 +6,10 @@ import {
   MiniMap,
   applyNodeChanges,
   applyEdgeChanges,
-  addEdge,
   type NodeTypes,
   type EdgeTypes,
   type Node,
+  type Edge,
   type ReactFlowInstance,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -22,6 +22,19 @@ import { FlowToolbar } from './flow-toolbar.js';
 import { useAutoLayout } from '../hooks/use-auto-layout.js';
 import { useWorkflowStore } from '../../../stores/workflow-store.js';
 import { AGENT_ROLES } from '@dark-boss/shared';
+
+// 注入脉冲动画 CSS（仅注入一次）
+if (typeof document !== 'undefined' && !document.getElementById('workflow-pulse-style')) {
+  const style = document.createElement('style');
+  style.id = 'workflow-pulse-style';
+  style.textContent = `
+    @keyframes agent-pulse {
+      0%, 100% { opacity: 0.4; transform: scale(1); }
+      50% { opacity: 0.1; transform: scale(1.03); }
+    }
+  `;
+  document.head.appendChild(style);
+}
 
 const nodeTypes: NodeTypes = {
   agent: AgentNode,
@@ -42,13 +55,15 @@ interface FlowCanvasProps {
   onBackToList: () => void;
   onSave: () => void;
   onRun: () => void;
+  onViewResult: () => void;
+  isRunning: boolean;
 }
 
-export function FlowCanvas({ onBackToList, onSave, onRun }: FlowCanvasProps) {
+export function FlowCanvas({ onBackToList, onSave, onRun, onViewResult, isRunning }: FlowCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
+  const reactFlowInstance = useRef<ReactFlowInstance<Node> | null>(null);
 
-  const { nodes, edges, onConnect, addNode, workflowName, isDirty } = useWorkflowStore();
+  const { nodes, edges, onConnect, addNode, workflowName, isDirty, executingNodeId, activeEdgeIds, nodeResults } = useWorkflowStore();
   const autoLayout = useAutoLayout();
 
   // 拖拽放置
@@ -89,7 +104,6 @@ export function FlowCanvas({ onBackToList, onSave, onRun }: FlowCanvasProps) {
       const edge = store.edges.find(ed => ed.id === edgeId);
       if (!edge) return;
 
-      // 在边的中间插入一个新的 Agent 节点
       const sourceNode = store.nodes.find(n => n.id === edge.source);
       const targetNode = store.nodes.find(n => n.id === edge.target);
       if (!sourceNode || !targetNode) return;
@@ -104,7 +118,6 @@ export function FlowCanvas({ onBackToList, onSave, onRun }: FlowCanvasProps) {
         data: { label: '新节点' },
       };
 
-      // 移除原边，添加两条新边
       const newEdges = store.edges
         .filter(ed => ed.id !== edgeId)
         .concat([
@@ -120,9 +133,90 @@ export function FlowCanvas({ onBackToList, onSave, onRun }: FlowCanvasProps) {
     return () => window.removeEventListener('edge-insert-node', handler);
   }, []);
 
-  const onInit = useCallback((instance: ReactFlowInstance) => {
-    reactFlowInstance.current = instance;
+  const onInit = useCallback((instance: unknown) => {
+    reactFlowInstance.current = instance as ReactFlowInstance<Node>;
   }, []);
+
+  // 监听工作流执行状态的 WebSocket 事件
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const { type, payload } = (event as CustomEvent).detail;
+      const store = useWorkflowStore.getState();
+
+      if (type === 'workflow:node_start') {
+        store.setExecutingNode(payload.nodeId);
+      }
+
+      if (type === 'workflow:node_complete') {
+        // 记录节点结果
+        if (payload.nodeId && payload.result) {
+          store.setNodeResult(payload.nodeId, payload.result);
+        }
+        // 激活该节点的出边
+        const completedEdges = store.edges
+          .filter(e => e.source === payload.nodeId)
+          .map(e => e.id);
+        const newActive = new Set(store.activeEdgeIds);
+        completedEdges.forEach(id => newActive.add(id));
+        store.setActiveEdges(newActive);
+        store.setExecutingNode(null);
+      }
+
+      if (type === 'workflow:progress' && payload.status) {
+        if (payload.status === 'running') {
+          store.setActiveEdges(new Set());
+          store.setExecutingNode(null);
+        }
+        if (payload.status === 'completed' || payload.status === 'failed') {
+          store.setExecutingNode(null);
+          // 执行结束时更新工作流状态
+          const { workflowId } = useWorkflowStore.getState();
+          if (workflowId) {
+            setTimeout(async () => {
+              try {
+                const wf = await fetch(`/api/v1/workflows/${workflowId}`).then(r => r.json());
+                if (wf.status === 'completed' && wf.variables) {
+                  const results = typeof wf.variables === 'string' ? JSON.parse(wf.variables) : wf.variables;
+                  const outputKeys = Object.keys(results);
+                  if (outputKeys.length > 0) {
+                    const outputs = outputKeys.map(k => results[k]).join('\n\n');
+                    (window as unknown as Record<string, unknown>).__workflowResult = outputs;
+                  }
+                }
+              } catch { /* ignore */ }
+            }, 500);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('ws:message', handler);
+    return () => window.removeEventListener('ws:message', handler);
+  }, []);
+
+  // 注入节点执行状态到 node data（让节点组件感知到 isExecuting/isCompleted）
+  const enrichedNodes = useMemo(() => {
+    return nodes.map(n => ({
+      ...n,
+      data: {
+        ...n.data,
+        isExecuting: executingNodeId === n.id,
+        isCompleted: nodeResults.has(n.id),
+        result: nodeResults.get(n.id) || null,
+      },
+    }));
+  }, [nodes, executingNodeId, nodeResults]);
+
+  // 注入边的激活状态
+  const enrichedEdges = useMemo(() => {
+    return edges.map(e => ({
+      ...e,
+      data: {
+        ...e.data,
+        isActive: activeEdgeIds.has(e.id),
+      },
+    }));
+  }, [edges, activeEdgeIds]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -133,7 +227,8 @@ export function FlowCanvas({ onBackToList, onSave, onRun }: FlowCanvasProps) {
         onPause={() => {/* TODO: 暂停执行 */}}
         onAutoLayout={autoLayout}
         onAddWorkflow={onBackToList}
-        isRunning={false}
+        onViewResult={onViewResult}
+        isRunning={isRunning}
         isDirty={isDirty}
         workflowName={workflowName}
       />
@@ -145,8 +240,8 @@ export function FlowCanvas({ onBackToList, onSave, onRun }: FlowCanvasProps) {
         {/* 画布 */}
         <div ref={reactFlowWrapper} style={{ flex: 1 }}>
           <ReactFlow
-            nodes={nodes}
-            edges={edges}
+            nodes={enrichedNodes as unknown as Node[]}
+            edges={enrichedEdges as unknown as Edge[]}
             onNodesChange={(changes) => {
               useWorkflowStore.getState().setNodes(applyNodeChanges(changes, nodes));
             }}

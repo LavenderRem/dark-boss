@@ -100,6 +100,20 @@ router.post('/channels/:id/messages', async (req, res) => {
     // 异步触发 Agent 回复（不阻塞 HTTP 响应）
     if (mentionsAgentIds && mentionsAgentIds.length > 0) {
       handleAgentMention(req.params.id, mentionsAgentIds, content);
+    } else if (senderType === 'user') {
+      // 私聊频道无需 @，自动触发对方 Agent 回复
+      const channel = queryOne<{ type: string; participant_agent_ids: string | null }>(
+        'SELECT type, participant_agent_ids FROM chat_channels WHERE id = ?',
+        [req.params.id]
+      );
+      if (channel?.type === 'direct' && channel.participant_agent_ids) {
+        try {
+          const agentIds = JSON.parse(channel.participant_agent_ids) as string[];
+          if (agentIds.length > 0) {
+            handleAgentMention(req.params.id, agentIds, content);
+          }
+        } catch { /* 忽略解析错误 */ }
+      }
     }
 
     res.status(201).json(message);

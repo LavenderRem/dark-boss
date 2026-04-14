@@ -1,5 +1,24 @@
 // API 客户端
+
 const API_BASE = '/api/v1';
+
+// 递归将 snake_case 键名转为 camelCase
+function toCamelCase(key: string): string {
+  return key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+}
+
+function transformKeys<T>(obj: T): T {
+  if (obj === null || obj === undefined) return obj;
+  if (Array.isArray(obj)) return obj.map(transformKeys) as T;
+  if (typeof obj === 'object' && obj.constructor === Object) {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[toCamelCase(key)] = transformKeys(value);
+    }
+    return result as T;
+  }
+  return obj;
+}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -12,7 +31,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     throw new Error(err.error || `HTTP ${res.status}`);
   }
 
-  return res.json();
+  const data = await res.json();
+  return transformKeys(data) as T;
 }
 
 export const api = {
