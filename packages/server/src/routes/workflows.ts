@@ -3,6 +3,26 @@ import { queryAll, queryOne, run } from '../db/connection.js';
 import { v4 as uuid } from 'uuid';
 import type { CreateWorkflowRequest, UpdateWorkflowRequest } from '@dark-boss/shared';
 
+// 辅助：解析日志行中的 JSON 字段
+function parseLogRow(r: Record<string, unknown>) {
+  return {
+    ...r,
+    tokensUsed: r.tokens_used,
+    cost: r.cost,
+    durationMs: r.duration_ms,
+    inputPreview: r.input_preview,
+    outputPreview: r.output_preview,
+    startedAt: r.started_at,
+    completedAt: r.completed_at,
+    createdAt: r.created_at,
+    executionId: r.execution_id,
+    nodeId: r.node_id,
+    nodeType: r.node_type,
+    agentId: r.agent_id,
+    workflowId: r.workflow_id,
+  };
+}
+
 const router = Router();
 
 // 列出所有工作流
@@ -134,6 +154,57 @@ router.post('/:id/execute', async (req, res) => {
   } catch (err) {
     console.error('启动工作流失败:', err);
     res.status(500).json({ error: '启动工作流失败' });
+  }
+});
+
+// 获取工作流所有执行记录列表（按 execution_id 分组）
+router.get('/:id/executions', (req, res) => {
+  try {
+    const rows = queryAll(
+      'SELECT execution_id, MIN(created_at) as started_at, MAX(completed_at) as completed_at, GROUP_CONCAT(status) as statuses FROM workflow_execution_logs WHERE workflow_id = ? GROUP BY execution_id ORDER BY started_at DESC',
+      [req.params.id]
+    );
+    const executions = rows.map(r => ({
+      executionId: r.execution_id,
+      startedAt: r.started_at,
+      completedAt: r.completed_at,
+      // 有任意 failed 则标记为 failed，否则看有没有 completed
+      status: String(r.statuses || '').includes('failed') ? 'failed' : 'completed',
+    }));
+    res.json(executions);
+  } catch (err) {
+    res.status(500).json({ error: '获取执行记录失败' });
+  }
+});
+
+// 获取最近一次执行的日志详情
+router.get('/:id/executions/latest', (req, res) => {
+  try {
+    const row = queryOne(
+      'SELECT execution_id FROM workflow_execution_logs WHERE workflow_id = ? ORDER BY created_at DESC LIMIT 1',
+      [req.params.id]
+    );
+    if (!row) return res.json([]);
+    const logs = queryAll(
+      'SELECT * FROM workflow_execution_logs WHERE execution_id = ? ORDER BY started_at ASC',
+      [row.execution_id]
+    );
+    res.json(logs.map(parseLogRow));
+  } catch (err) {
+    res.status(500).json({ error: '获取执行日志失败' });
+  }
+});
+
+// 获取指定执行的所有节点日志
+router.get('/:id/executions/:executionId', (req, res) => {
+  try {
+    const logs = queryAll(
+      'SELECT * FROM workflow_execution_logs WHERE workflow_id = ? AND execution_id = ? ORDER BY started_at ASC',
+      [req.params.id, req.params.executionId]
+    );
+    res.json(logs.map(parseLogRow));
+  } catch (err) {
+    res.status(500).json({ error: '获取执行日志失败' });
   }
 });
 

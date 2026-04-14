@@ -56,10 +56,11 @@ interface FlowCanvasProps {
   onSave: () => void;
   onRun: () => void;
   onViewResult: () => void;
+  onToggleLogPanel: () => void;
   isRunning: boolean;
 }
 
-export function FlowCanvas({ onBackToList, onSave, onRun, onViewResult, isRunning }: FlowCanvasProps) {
+export function FlowCanvas({ onBackToList, onSave, onRun, onViewResult, onToggleLogPanel, isRunning }: FlowCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useRef<ReactFlowInstance<Node> | null>(null);
 
@@ -228,6 +229,7 @@ export function FlowCanvas({ onBackToList, onSave, onRun, onViewResult, isRunnin
         onAutoLayout={autoLayout}
         onAddWorkflow={onBackToList}
         onViewResult={onViewResult}
+        onToggleLogPanel={onToggleLogPanel}
         isRunning={isRunning}
         isDirty={isDirty}
         workflowName={workflowName}

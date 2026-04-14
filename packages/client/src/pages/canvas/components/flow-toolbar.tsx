@@ -7,6 +7,8 @@ import {
   PlusOutlined,
   EyeOutlined,
   LoadingOutlined,
+  FileSearchOutlined,
+  ArrowLeftOutlined,
 } from '@ant-design/icons';
 
 interface FlowToolbarProps {
@@ -16,6 +18,7 @@ interface FlowToolbarProps {
   onAutoLayout: () => void;
   onAddWorkflow: () => void;
   onViewResult: () => void;
+  onToggleLogPanel: () => void;
   isRunning?: boolean;
   isDirty?: boolean;
   workflowName?: string;
@@ -28,6 +31,7 @@ export function FlowToolbar({
   onAutoLayout,
   onAddWorkflow,
   onViewResult,
+  onToggleLogPanel,
   isRunning,
   isDirty,
   workflowName,
@@ -41,12 +45,15 @@ export function FlowToolbar({
       background: '#1a1a1a',
       borderBottom: '1px solid #303030',
     }}>
-      {/* 左侧：工作流名称 + 运行状态 */}
+      {/* 左侧：返回按钮 + 工作流名称 + 运行状态 */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         gap: 8,
       }}>
+        <Tooltip title="返回列表">
+          <Button type="text" icon={<ArrowLeftOutlined />} onClick={onAddWorkflow} size="small" style={{ color: '#8c8c8c' }} />
+        </Tooltip>
         <span style={{ color: '#e8e8e8', fontWeight: 600, fontSize: 14 }}>
           {workflowName || '未命名工作流'}
         </span>
@@ -61,7 +68,7 @@ export function FlowToolbar({
       {/* 右侧：操作按钮 */}
       <Space size={4}>
         <Tooltip title="新建工作流">
-          <Button type="text" icon={<PlusOutlined />} onClick={onAddWorkflow} size="small" />
+          <Button type="text" icon={<PlusOutlined />} onClick={onAddWorkflow} size="small" style={{ color: '#8c8c8c' }} />
         </Tooltip>
         <Tooltip title="保存 (Ctrl+S)">
           <Button type="text" icon={<SaveOutlined />} onClick={onSave} size="small" />
@@ -73,6 +80,9 @@ export function FlowToolbar({
         <div style={{ width: 1, height: 20, background: '#303030', margin: '0 4px' }} />
         <Tooltip title="查看结果">
           <Button type="text" icon={<EyeOutlined />} onClick={onViewResult} size="small" />
+        </Tooltip>
+        <Tooltip title="执行日志">
+          <Button type="text" icon={<FileSearchOutlined />} onClick={onToggleLogPanel} size="small" />
         </Tooltip>
         <div style={{ width: 1, height: 20, background: '#303030', margin: '0 4px' }} />
         {isRunning ? (

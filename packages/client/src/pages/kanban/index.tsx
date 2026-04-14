@@ -1,11 +1,10 @@
-import { useState, useCallback } from 'react';
-import { Card, Button, Modal, Form, Input, Select, Tag, Typography, Space, message, Dropdown, Skeleton } from 'antd';
+import { useState, useCallback, useEffect } from 'react';
+import { Card, Button, Modal, Form, Input, Select, Tag, Typography, Space, message, Skeleton, DatePicker } from 'antd';
 import {
   PlusOutlined,
-  DeleteOutlined,
-  EditOutlined,
   ExclamationCircleOutlined,
   ClockCircleOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -20,9 +19,11 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import dayjs from 'dayjs';
 import { api } from '../../api/client.js';
 import type { Task, TaskStatus, TaskPriority, Agent } from '@dark-boss/shared';
 import { AGENT_ROLES } from '@dark-boss/shared';
+import { TaskDetailDrawer } from './components/task-detail-drawer.js';
 
 const { Title, Text } = Typography;
 
@@ -43,15 +44,16 @@ const PRIORITY_CONFIG: Record<TaskPriority, { label: string; color: string }> = 
 };
 
 // 可拖拽的任务卡片
-function TaskCard({ task, agents, onEdit, onDelete }: {
+function TaskCard({ task, agents, onClick }: {
   task: Task;
   agents: Agent[];
-  onEdit: (task: Task) => void;
-  onDelete: (id: string) => void;
+  onClick: (task: Task) => void;
 }) {
   const assignee = agents.find(a => a.id === task.assignedAgentId);
   const priorityConfig = PRIORITY_CONFIG[task.priority];
   const roleInfo = assignee ? (AGENT_ROLES[assignee.role] || AGENT_ROLES.custom) : null;
+  const isOverdue = task.dueAt && task.status !== 'done' && task.status !== 'cancelled'
+    && new Date(task.dueAt).getTime() < Date.now();
 
   return (
     <Card
@@ -59,9 +61,10 @@ function TaskCard({ task, agents, onEdit, onDelete }: {
       style={{
         background: '#2a2a2a',
         borderLeft: `3px solid ${priorityConfig.color}`,
-        cursor: 'grab',
+        cursor: 'pointer',
       }}
       styles={{ body: { padding: '8px 12px' } }}
+      onClick={() => onClick(task)}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ flex: 1 }}>
@@ -77,22 +80,13 @@ function TaskCard({ task, agents, onEdit, onDelete }: {
                 <ClockCircleOutlined /> {task.estimatedMinutes}分钟
               </Text>
             )}
+            {isOverdue && (
+              <Tag color="error" style={{ fontSize: 10, lineHeight: '16px', padding: '0 3px', margin: 0 }}>
+                逾期
+              </Tag>
+            )}
           </Space>
         </div>
-        <Dropdown
-          menu={{
-            items: [
-              { key: 'edit', icon: <EditOutlined />, label: '编辑', onClick: () => onEdit(task) },
-              { type: 'divider' as const },
-              { key: 'delete', icon: <DeleteOutlined />, label: '删除', danger: true, onClick: () => onDelete(task.id) },
-            ],
-          }}
-          trigger={['click']}
-        >
-          <Button type="text" size="small" style={{ color: '#595959' }}>
-            ...
-          </Button>
-        </Dropdown>
       </div>
       {assignee && (
         <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -105,11 +99,10 @@ function TaskCard({ task, agents, onEdit, onDelete }: {
 }
 
 // 可排序的任务卡片（带 dnd-kit useSortable）
-function SortableTaskCard({ task, agents, onEdit, onDelete }: {
+function SortableTaskCard({ task, agents, onClick }: {
   task: Task;
   agents: Agent[];
-  onEdit: (task: Task) => void;
-  onDelete: (id: string) => void;
+  onClick: (task: Task) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
@@ -125,7 +118,7 @@ function SortableTaskCard({ task, agents, onEdit, onDelete }: {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <TaskCard task={task} agents={agents} onEdit={onEdit} onDelete={onDelete} />
+      <TaskCard task={task} agents={agents} onClick={onClick} />
     </div>
   );
 }
@@ -134,11 +127,20 @@ export function KanbanPage() {
   const queryClient = useQueryClient();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [executingTaskId, setExecutingTaskId] = useState<string | null>(null);
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
   const [defaultStatus, setDefaultStatus] = useState<TaskStatus>('todo');
+
+  // 筛选状态
+  const [searchText, setSearchText] = useState('');
+  const [filterAgent, setFilterAgent] = useState<string | undefined>(undefined);
+  const [filterDept, setFilterDept] = useState<string | undefined>(undefined);
+  const [filterPriority, setFilterPriority] = useState<TaskPriority | undefined>(undefined);
 
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['tasks'],
@@ -153,6 +155,11 @@ export function KanbanPage() {
   const { data: departments = [] } = useQuery({
     queryKey: ['departments'],
     queryFn: () => api.get<{ id: string; name: string }[]>('/departments'),
+  });
+
+  const { data: workflows = [] } = useQuery({
+    queryKey: ['workflows'],
+    queryFn: () => api.get<{ id: string; name: string }[]>('/workflows'),
   });
 
   const sensors = useSensors(
@@ -193,10 +200,24 @@ export function KanbanPage() {
     mutationFn: (id: string) => api.delete(`/tasks/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setDetailOpen(false);
+      setDetailTask(null);
       message.success('任务删除成功');
     },
     onError: (err: Error) => message.error(err.message),
   });
+
+  // WebSocket 实时同步
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const { type } = (event as CustomEvent).detail;
+      if (type === 'task:updated') {
+        queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      }
+    };
+    window.addEventListener('ws:message', handler);
+    return () => window.removeEventListener('ws:message', handler);
+  }, [queryClient]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const task = tasks.find(t => t.id === event.active.id);
@@ -209,10 +230,8 @@ export function KanbanPage() {
     if (!over) return;
 
     const taskId = active.id as string;
-    // over.id 可能是列的 status 或另一个 task 的 id
     const overId = over.id as string;
 
-    // 检查是否拖到了列上
     const targetColumn = COLUMNS.find(c => c.status === overId);
     if (targetColumn) {
       const task = tasks.find(t => t.id === taskId);
@@ -222,7 +241,6 @@ export function KanbanPage() {
       return;
     }
 
-    // 拖到另一个 task 上：获取目标 task 的 status
     const targetTask = tasks.find(t => t.id === overId);
     if (targetTask && taskId !== overId) {
       moveMutation.mutate({ id: taskId, status: targetTask.status, columnOrder: targetTask.columnOrder });
@@ -238,7 +256,9 @@ export function KanbanPage() {
         status: defaultStatus,
         assignedAgentId: values.assignedAgentId,
         departmentId: values.departmentId,
+        workflowId: values.workflowId,
         estimatedMinutes: values.estimatedMinutes,
+        dueAt: values.dueAt ? values.dueAt.valueOf() : undefined,
       });
     });
   };
@@ -253,6 +273,7 @@ export function KanbanPage() {
           description: values.description,
           priority: values.priority,
           assignedAgentId: values.assignedAgentId,
+          dueAt: values.dueAt ? values.dueAt.valueOf() : null,
         },
       });
     });
@@ -270,18 +291,98 @@ export function KanbanPage() {
     });
   };
 
-  const getTasksByStatus = (status: TaskStatus) => tasks.filter(t => t.status === status);
+  // 执行任务
+  const handleExecute = async (taskId: string) => {
+    setExecutingTaskId(taskId);
+    try {
+      await api.post(`/tasks/${taskId}/execute`, {});
+      message.success('任务开始执行');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '执行失败';
+      message.error(msg);
+    } finally {
+      setExecutingTaskId(null);
+    }
+  };
+
+  // 点击任务卡片 → 打开详情
+  const handleTaskClick = (task: Task) => {
+    setDetailTask(task);
+    setDetailOpen(true);
+  };
+
+  // 筛选后的任务列表
+  const filteredTasks = tasks.filter(t => {
+    if (searchText) {
+      const lower = searchText.toLowerCase();
+      if (!t.title.toLowerCase().includes(lower) && !(t.description || '').toLowerCase().includes(lower)) {
+        return false;
+      }
+    }
+    if (filterAgent && t.assignedAgentId !== filterAgent) return false;
+    if (filterDept && t.departmentId !== filterDept) return false;
+    if (filterPriority && t.priority !== filterPriority) return false;
+    return true;
+  });
+
+  const getTasksByStatus = (status: TaskStatus) => filteredTasks.filter(t => t.status === status);
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Title level={4} style={{ color: '#e8e8e8', margin: 0 }}>协作看板</Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => {
-          setDefaultStatus('todo');
-          setCreateModalOpen(true);
-        }}>
-          新建任务
-        </Button>
+      {/* 顶部：标题 + 筛选栏 */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <Title level={4} style={{ color: '#e8e8e8', margin: 0 }}>协作看板</Title>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => {
+            setDefaultStatus('todo');
+            setCreateModalOpen(true);
+          }}>
+            新建任务
+          </Button>
+        </div>
+        {/* 筛选栏 */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Input
+            prefix={<SearchOutlined style={{ color: '#595959' }} />}
+            placeholder="搜索任务..."
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+            allowClear
+            style={{ width: 200, background: '#1f1f1f', borderColor: '#303030' }}
+          />
+          <Select
+            allowClear
+            placeholder="负责人"
+            value={filterAgent}
+            onChange={setFilterAgent}
+            style={{ width: 140 }}
+            options={agents.map(a => {
+              const r = AGENT_ROLES[a.role] || AGENT_ROLES.custom;
+              return { value: a.id, label: `${r.icon} ${a.name}` };
+            })}
+          />
+          <Select
+            allowClear
+            placeholder="部门"
+            value={filterDept}
+            onChange={setFilterDept}
+            style={{ width: 130 }}
+            options={departments.map(d => ({ value: d.id, label: d.name }))}
+          />
+          <Select
+            allowClear
+            placeholder="优先级"
+            value={filterPriority}
+            onChange={setFilterPriority}
+            style={{ width: 110 }}
+            options={[
+              { value: 'critical', label: '紧急' },
+              { value: 'high', label: '高' },
+              { value: 'medium', label: '中' },
+              { value: 'low', label: '低' },
+            ]}
+          />
+        </div>
       </div>
 
       {tasksLoading || agentsLoading ? (
@@ -352,17 +453,7 @@ export function KanbanPage() {
                         key={task.id}
                         task={task}
                         agents={agents}
-                        onEdit={(t) => {
-                          setEditingTask(t);
-                          editForm.setFieldsValue({
-                            title: t.title,
-                            description: t.description,
-                            priority: t.priority,
-                            assignedAgentId: t.assignedAgentId,
-                          });
-                          setEditModalOpen(true);
-                        }}
-                        onDelete={handleDelete}
+                        onClick={handleTaskClick}
                       />
                     ))}
                   </div>
@@ -375,12 +466,37 @@ export function KanbanPage() {
         <DragOverlay>
           {activeTask ? (
             <div style={{ opacity: 0.85, transform: 'rotate(2deg)' }}>
-              <TaskCard task={activeTask} agents={agents} onEdit={() => {}} onDelete={() => {}} />
+              <TaskCard task={activeTask} agents={agents} onClick={() => {}} />
             </div>
           ) : null}
         </DragOverlay>
       </DndContext>
       )}
+
+      {/* 任务详情 Drawer */}
+      <TaskDetailDrawer
+        task={detailTask}
+        open={detailOpen}
+        onClose={() => { setDetailOpen(false); setDetailTask(null); }}
+        agents={agents}
+        departments={departments}
+        workflows={workflows}
+        onEdit={(task) => {
+          setDetailOpen(false);
+          setEditingTask(task);
+          editForm.setFieldsValue({
+            title: task.title,
+            description: task.description,
+            priority: task.priority,
+            assignedAgentId: task.assignedAgentId,
+            dueAt: task.dueAt ? dayjs(task.dueAt) : undefined,
+          });
+          setEditModalOpen(true);
+        }}
+        onDelete={handleDelete}
+        onExecute={handleExecute}
+        isExecuting={executingTaskId === detailTask?.id}
+      />
 
       {/* 创建任务弹窗 */}
       <Modal
@@ -410,6 +526,18 @@ export function KanbanPage() {
             </Form.Item>
             <Form.Item name="estimatedMinutes" label="预估时间(分)" style={{ flex: 1 }}>
               <Input type="number" placeholder="60" />
+            </Form.Item>
+          </div>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <Form.Item name="dueAt" label="截止日期" style={{ flex: 1 }}>
+              <DatePicker style={{ width: '100%' }} placeholder="选择截止日期" />
+            </Form.Item>
+            <Form.Item name="workflowId" label="关联工作流" style={{ flex: 1 }}>
+              <Select allowClear placeholder="选择工作流（可选）">
+                {workflows.map(w => (
+                  <Select.Option key={w.id} value={w.id}>{w.name}</Select.Option>
+                ))}
+              </Select>
             </Form.Item>
           </div>
           <Form.Item name="assignedAgentId" label="指派给">
@@ -451,14 +579,19 @@ export function KanbanPage() {
           <Form.Item name="description" label="描述">
             <Input.TextArea rows={3} placeholder="任务描述（可选）" />
           </Form.Item>
-          <Form.Item name="priority" label="优先级">
-            <Select>
-              <Select.Option value="critical">紧急</Select.Option>
-              <Select.Option value="high">高</Select.Option>
-              <Select.Option value="medium">中</Select.Option>
-              <Select.Option value="low">低</Select.Option>
-            </Select>
-          </Form.Item>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <Form.Item name="priority" label="优先级" style={{ flex: 1 }}>
+              <Select>
+                <Select.Option value="critical">紧急</Select.Option>
+                <Select.Option value="high">高</Select.Option>
+                <Select.Option value="medium">中</Select.Option>
+                <Select.Option value="low">低</Select.Option>
+              </Select>
+            </Form.Item>
+            <Form.Item name="dueAt" label="截止日期" style={{ flex: 1 }}>
+              <DatePicker style={{ width: '100%' }} placeholder="选择截止日期" />
+            </Form.Item>
+          </div>
           <Form.Item name="assignedAgentId" label="指派给">
             <Select allowClear placeholder="选择员工（可选）">
               {agents.map(a => {

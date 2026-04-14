@@ -4,6 +4,7 @@ import { Modal, Input, Form, Card, Typography, Button, Space, message, Empty, Sk
 import { PlusOutlined, DeleteOutlined, PlayCircleOutlined, FileTextOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, EyeOutlined, CopyOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FlowCanvas } from './components/flow-canvas.js';
+import { ExecutionLogPanel } from './components/execution-log-panel.js';
 import { useWorkflowStore } from '../../stores/workflow-store.js';
 import { api } from '../../api/client.js';
 import { MarkdownRenderer } from '../../components/chat/markdown-renderer.js';
@@ -33,7 +34,7 @@ export function CanvasPage() {
   const [runInput, setRunInput] = useState('');
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
-  const { workflowId, workflowResult, isRunning, setRunning, setWorkflowResult } = useWorkflowStore();
+  const { workflowId, workflowResult, isRunning, setRunning, setWorkflowResult, toggleLogPanel } = useWorkflowStore();
 
   const { data: workflows = [], isLoading } = useQuery({
     queryKey: ['workflows'],
@@ -91,6 +92,9 @@ export function CanvasPage() {
       if (type === 'workflow:progress' && payload) {
         if (payload.status === 'running') {
           setRunning(true);
+          if (payload.executionId) {
+            useWorkflowStore.getState().setExecutionId(payload.executionId);
+          }
         }
         if (payload.status === 'completed') {
           setRunning(false);
@@ -187,6 +191,7 @@ export function CanvasPage() {
               setRunModalOpen(true);
             }}
             onViewResult={() => handleViewResult()}
+            onToggleLogPanel={toggleLogPanel}
             isRunning={isRunning}
           />
         </ReactFlowProvider>
@@ -290,6 +295,9 @@ export function CanvasPage() {
             )}
           </div>
         </Modal>
+
+        {/* 执行日志面板 */}
+        <ExecutionLogPanel />
       </div>
     );
   }

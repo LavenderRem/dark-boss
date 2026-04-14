@@ -8,6 +8,9 @@
 **Phase 2：工作流画布 + 实时执行 — ✅ 已完成**
 **Phase 3：组织架构 + 看板 + 群聊 — ✅ 已完成**
 **Phase 4：绩效系统 + 招聘市场 + UI 打磨 — ✅ 已完成**
+**Phase 5：Claude Code SDK 集成 — ✅ 已完成**
+**Phase 6：执行日志查看器面板 — ✅ 已完成**
+**Phase 7：协作看板功能完善 — ✅ 已完成**
 
 ---
 
@@ -203,6 +206,100 @@ pnpm dev
 - [ ] 多轮对话支持（Agent 记忆跨消息上下文）
 - [ ] Agent 回复成本统计面板
 
+---
+
+## Phase 6 完成清单：执行日志查看器面板
+
+### 后端（已完成）
+- [x] `workflow_execution_logs` 表（记录每个节点的执行状态、输入/输出、耗时、token、费用）
+- [x] 工作流引擎写入执行日志（每次执行生成 executionId，节点开始/完成时写入/更新日志）
+- [x] 执行日志 API 端点
+  - `GET /workflows/:id/executions` — 执行记录列表
+  - `GET /workflows/:id/executions/latest` — 最近一次执行日志
+  - `GET /workflows/:id/executions/:executionId` — 指定执行的节点日志
+
+### 前端（已完成）
+- [x] workflow-store 扩展（executionId、executionLogs、showLogPanel 状态）
+- [x] ExecutionLogPanel 组件（底部 Drawer、Timeline 展示、实时 WebSocket 更新）
+- [x] 工具栏"执行日志"按钮（FileSearchOutlined 图标）
+- [x] 画布页面集成（传递 onToggleLogPanel、添加 ExecutionLogPanel）
+
+### 新增文件
+```
+packages/client/src/pages/canvas/components/execution-log-panel.tsx  # 执行日志面板
+```
+
+### 修改文件
+```
+packages/server/src/db/connection.ts              # 新增 workflow_execution_logs 表 + 索引
+packages/server/src/services/workflow-engine.ts    # 执行过程写入日志（insertExecutionLog/updateExecutionLog）
+packages/server/src/routes/workflows.ts            # 新增 3 个执行日志端点
+packages/client/src/stores/workflow-store.ts       # 新增 ExecutionLogEntry 类型 + 6 个日志 Actions
+packages/client/src/pages/canvas/index.tsx         # 集成 ExecutionLogPanel + 传递 executionId
+packages/client/src/pages/canvas/components/flow-canvas.tsx  # 传递 onToggleLogPanel
+packages/client/src/pages/canvas/components/flow-toolbar.tsx  # 新增日志按钮
+```
+
+### 新增 API 端点
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /workflows/:id/executions | 执行记录列表（按 execution_id 分组） |
+| GET | /workflows/:id/executions/latest | 最近一次执行的节点日志 |
+| GET | /workflows/:id/executions/:executionId | 指定执行的节点日志 |
+
+---
+
+## Phase 7 完成清单：协作看板功能完善
+
+### 后端（已完成）
+- [x] 任务执行服务 `task-executor.ts`
+  - `executeTask(taskId)` — 指派 Agent 调用 Claude API 执行任务
+  - `pullAndExecuteTask(agentId)` — Agent 拉取优先级最高的待办任务并执行
+  - 自动状态流转（todo → in_progress → review）
+  - 结果写入 `result` 字段 + Token/费用统计
+- [x] 任务路由 `tasks.ts` 扩展
+  - `POST /tasks/:id/execute` — 手动触发执行
+  - `POST /tasks/agent/:agentId/pull-task` — Agent 拉取任务
+  - 所有写操作广播 `task:updated` WebSocket 事件
+
+### 前端（已完成）
+- [x] 任务详情面板 `task-detail-drawer.tsx`
+  - 完整信息展示（标题、描述、优先级、状态、指派人）
+  - 时间信息（创建/开始/完成/截止 + 逾期标红）
+  - 预估 vs 实际耗时对比
+  - 执行结果 Markdown 渲染
+  - 操作按钮（编辑/删除/执行）
+- [x] 截止日期管理（创建/编辑弹窗 DatePicker）
+- [x] 搜索与筛选栏（关键词/负责人/部门/优先级）
+- [x] 实时 WebSocket 同步（监听 `task:updated` 自动刷新）
+- [x] 工作流关联（创建弹窗可选关联工作流）
+- [x] 任务执行按钮（详情面板 + 执行中状态指示）
+
+### 新增文件
+```
+packages/server/src/services/task-executor.ts                    # 任务执行服务
+packages/client/src/pages/kanban/components/task-detail-drawer.tsx  # 任务详情面板
+```
+
+### 修改文件
+```
+packages/server/src/routes/tasks.ts      # 新增执行端点 + broadcast
+packages/client/src/pages/kanban/index.tsx  # 筛选栏 + 详情面板 + 截止日期 + WebSocket + 工作流
+```
+
+### 新增依赖
+```bash
+pnpm --filter @dark-boss/client add dayjs
+```
+
+### 新增 API 端点
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /tasks/:id/execute | 手动触发任务执行 |
+| POST | /tasks/agent/:agentId/pull-task | Agent 拉取并执行下一个任务 |
+
 ### 本轮新增/修改文件
 ```
 # 新增
@@ -222,12 +319,9 @@ packages/server/src/routes/performance.ts            # 团队趋势 API
 packages/server/src/services/performance-service.ts  # getTeamTrend 函数
 packages/server/src/routes/templates.ts              # 评分 API
 packages/client/vite.config.ts                       # manualChunks 分包配置
-
-# 新增依赖
-pnpm --filter @dark-boss/client add @dnd-kit/utilities
 ```
 
-### 新增文件清单
+### 工作流画布文件清单
 ```
 packages/server/src/routes/workflows.ts      # 工作流 API
 packages/server/src/ws/connection.ts          # WebSocket 服务
@@ -246,13 +340,13 @@ packages/client/src/stores/
   workflow-store.ts    # Zustand 状态管理
 ```
 
-### 待优化（Phase 2 遗留）
-- [ ] 工作流保存/加载 UI（当前 store 只在内存，未接 API）
-- [ ] 实时执行可视化的节点高亮动画（broadcast 已实现，前端消费待接）
-- [ ] 边上 "插入节点" 交互（事件已注册，处理逻辑待实现）
-- [ ] 工作流列表页（选择/切换工作流）
-- [ ] 执行日志查看器面板
-- [ ] 前端 build chunk 优化（antd 全量打包 2.4MB）
+### 待优化（Phase 2 遗留）→ 全部已完成
+- [x] 工作流保存/加载 UI（Ctrl+S 保存 + API 加载）
+- [x] 实时执行可视化的节点高亮动画（WebSocket + 节点脉冲 + 边激活）
+- [x] 边上 "插入节点" 交互（+ 按钮 + 自动连线）
+- [x] 工作流列表页（卡片网格 + 状态标签 + 新建/删除）
+- [x] 执行日志查看器面板（底部 Drawer + Timeline + 实时 WebSocket）
+- [x] 前端 build chunk 优化（Vite manualChunks 分包）
 
 ---
 
@@ -268,12 +362,12 @@ packages/client/src/stores/
 - [x] 协作看板页面 (`pages/kanban/index.tsx`)
 - [x] 团队群聊页面 (`pages/chat/index.tsx`)
 
-### 待优化（Phase 3 遗留）
-- [ ] 组织架构拖拽排序部门
-- [ ] 看板 dnd-kit SortableContext 同列内排序
-- [ ] 聊天 WebSocket 实时接收新消息
-- [ ] Agent 自动回复消息（接入 Claude SDK）
-- [ ] 消息附件/富文本支持
+### 待优化（Phase 3 遗留）→ 4/5 已完成
+- [x] 组织架构拖拽排序部门（Phase 4 完成）
+- [x] 看板 dnd-kit SortableContext 同列内排序（Phase 4 完成）
+- [x] 聊天 WebSocket 实时接收新消息（Phase 4 完成）
+- [x] Agent 自动回复消息（Phase 5 完成，接入 Claude Code CLI）
+- [ ] 消息附件/文件上传功能
 
 ---
 
@@ -320,8 +414,13 @@ docs/adr/                   → 架构决策记录
 | 工作流 | GET/POST | /workflows |
 | 工作流 | GET/PATCH/DELETE | /workflows/:id |
 | 执行 | POST | /workflows/:id/execute |
+| 执行记录列表 | GET | /workflows/:id/executions |
+| 最近执行日志 | GET | /workflows/:id/executions/latest |
+| 指定执行日志 | GET | /workflows/:id/executions/:executionId |
 | 任务 | GET/POST | /tasks |
 | 任务 | PATCH/DELETE | /tasks/:id |
+| 任务执行 | POST | /tasks/:id/execute |
+| Agent 拉取任务 | POST | /tasks/agent/:agentId/pull-task |
 | 聊天频道 | GET/POST | /chat/channels |
 | 聊天消息 | GET/POST | /chat/channels/:id/messages |
 | 绩效概览 | GET | /performance/dashboard |

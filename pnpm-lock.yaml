@@ -41,6 +41,9 @@ importers:
       antd:
         specifier: ^5.24.0
         version: 5.29.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      dayjs:
+        specifier: ^1.11.20
+        version: 1.11.20
       elkjs:
         specifier: ^0.11.1
         version: 0.11.1

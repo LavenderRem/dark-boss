@@ -2,6 +2,28 @@ import { create } from 'zustand';
 import { applyNodeChanges, applyEdgeChanges, addEdge, type Node, type Edge, type Connection } from '@xyflow/react';
 import type { Workflow, WorkflowStatus } from '@dark-boss/shared';
 
+// 执行日志条目
+export interface ExecutionLogEntry {
+  id: string;
+  workflowId: string;
+  executionId: string;
+  nodeId: string;
+  nodeType: string;
+  agentId?: string;
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'skipped';
+  inputPreview?: string;
+  outputPreview?: string;
+  error?: string;
+  durationMs?: number;
+  tokensUsed?: number;
+  cost?: number;
+  startedAt?: number;
+  completedAt?: number;
+  createdAt: number;
+  // 前端补充字段
+  nodeLabel?: string;
+}
+
 interface WorkflowState {
   // 当前工作流
   workflowId: string | null;
@@ -22,6 +44,11 @@ interface WorkflowState {
   nodeResults: Map<string, string>;
   workflowResult: string | null;
 
+  // 执行日志
+  executionId: string | null;
+  executionLogs: ExecutionLogEntry[];
+  showLogPanel: boolean;
+
   // Actions
   setWorkflow: (workflow: Workflow) => void;
   setNodes: (nodes: Node[]) => void;
@@ -38,6 +65,14 @@ interface WorkflowState {
   setWorkflowResult: (result: string | null) => void;
   markDirty: () => void;
   markSaved: () => void;
+  // 执行日志 Actions
+  setExecutionId: (id: string | null) => void;
+  setExecutionLogs: (logs: ExecutionLogEntry[]) => void;
+  addExecutionLog: (entry: ExecutionLogEntry) => void;
+  updateExecutionLog: (nodeId: string, updates: Partial<ExecutionLogEntry>) => void;
+  clearExecutionLogs: () => void;
+  toggleLogPanel: () => void;
+  setShowLogPanel: (show: boolean) => void;
   reset: () => void;
 }
 
@@ -53,6 +88,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   activeEdgeIds: new Set(),
   nodeResults: new Map(),
   workflowResult: null,
+  executionId: null,
+  executionLogs: [],
+  showLogPanel: false,
 
   setWorkflow: (workflow) => set({
     workflowId: workflow.id,
@@ -78,6 +116,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     activeEdgeIds: new Set(),
     nodeResults: new Map(),
     workflowResult: null,
+    executionId: null,
+    executionLogs: [],
   }),
 
   setNodes: (nodes) => set({ nodes }),
@@ -114,6 +154,20 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   setWorkflowResult: (result) => set({ workflowResult: result }),
   markDirty: () => set({ isDirty: true }),
   markSaved: () => set({ isDirty: false }),
+
+  // 执行日志 Actions
+  setExecutionId: (id) => set({ executionId: id }),
+  setExecutionLogs: (logs) => set({ executionLogs: logs }),
+  addExecutionLog: (entry) => set({ executionLogs: [...get().executionLogs, entry] }),
+  updateExecutionLog: (nodeId, updates) => set({
+    executionLogs: get().executionLogs.map(log =>
+      log.nodeId === nodeId ? { ...log, ...updates } : log
+    ),
+  }),
+  clearExecutionLogs: () => set({ executionLogs: [], executionId: null }),
+  toggleLogPanel: () => set({ showLogPanel: !get().showLogPanel }),
+  setShowLogPanel: (show) => set({ showLogPanel: show }),
+
   reset: () => set({
     workflowId: null,
     workflowName: '',
@@ -126,5 +180,8 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     activeEdgeIds: new Set(),
     nodeResults: new Map(),
     workflowResult: null,
+    executionId: null,
+    executionLogs: [],
+    showLogPanel: false,
   }),
 }));

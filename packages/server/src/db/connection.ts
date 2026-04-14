@@ -226,6 +226,30 @@ function createTables() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_perf_snap_period ON performance_snapshots(period_start)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_perf_report_agent ON performance_reports(agent_id)`);
 
+  db.run(`
+    CREATE TABLE IF NOT EXISTS workflow_execution_logs (
+      id TEXT PRIMARY KEY,
+      workflow_id TEXT NOT NULL REFERENCES workflows(id),
+      execution_id TEXT NOT NULL,
+      node_id TEXT NOT NULL,
+      node_type TEXT NOT NULL,
+      agent_id TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      input_preview TEXT,
+      output_preview TEXT,
+      error TEXT,
+      duration_ms INTEGER,
+      tokens_used INTEGER,
+      cost REAL,
+      started_at INTEGER,
+      completed_at INTEGER,
+      created_at INTEGER NOT NULL
+    )
+  `);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_exec_log_workflow ON workflow_execution_logs(workflow_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_exec_log_execution ON workflow_execution_logs(execution_id)`);
+
   save();
 }
 

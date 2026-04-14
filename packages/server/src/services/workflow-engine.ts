@@ -2,6 +2,7 @@ import { queryOne, run } from '../db/connection.js';
 import { broadcast } from '../ws/connection.js';
 import { singleQuery, isSdkAvailable } from './claude-client.js';
 import type { WorkflowNode, WorkflowEdge } from '@dark-boss/shared';
+import { v4 as uuid } from 'uuid';
 
 // 角色描述映射（与 chat-agent-service.ts 保持一致）
 const ROLE_DESCRIPTIONS: Record<string, string> = {
@@ -20,12 +21,14 @@ const ROLE_DESCRIPTIONS: Record<string, string> = {
 
 interface ExecutionContext {
   workflowId: string;
+  executionId: string;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   nodeOutputs: Map<string, string>;
   completed: Set<string>;
   workflowInput: string;
   finalOutputs: Map<string, string>;
+  nodeStartTimes: Map<string, number>;
 }
 
 // 拓扑排序：找出可执行的节点顺序
@@ -77,8 +80,97 @@ function getUpstreamOutputs(ctx: ExecutionContext, nodeId: string): string[] {
     .filter((v): v is string => !!v);
 }
 
+// 截断文本用于预览
+function truncate(text: string, maxLen: number = 2000): string {
+  if (!text) return '';
+  return text.length > maxLen ? text.slice(0, maxLen) + '...(已截断)' : text;
+}
+
+// 写入执行日志到数据库
+function insertExecutionLog(params: {
+  id: string;
+  workflowId: string;
+  executionId: string;
+  nodeId: string;
+  nodeType: string;
+  agentId?: string;
+  status: string;
+  inputPreview?: string;
+  outputPreview?: string;
+  error?: string;
+  durationMs?: number;
+  tokensUsed?: number;
+  cost?: number;
+  startedAt?: number;
+  completedAt?: number;
+}): void {
+  const now = Date.now();
+  run(
+    `INSERT OR REPLACE INTO workflow_execution_logs
+     (id, workflow_id, execution_id, node_id, node_type, agent_id, status,
+      input_preview, output_preview, error, duration_ms, tokens_used, cost,
+      started_at, completed_at, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      params.id, params.workflowId, params.executionId, params.nodeId,
+      params.nodeType, params.agentId || null, params.status,
+      params.inputPreview ? truncate(params.inputPreview) : null,
+      params.outputPreview ? truncate(params.outputPreview) : null,
+      params.error || null,
+      params.durationMs ?? null,
+      params.tokensUsed ?? null,
+      params.cost ?? null,
+      params.startedAt ?? null,
+      params.completedAt ?? null,
+      now,
+    ]
+  );
+}
+
+// 更新执行日志状态
+function updateExecutionLog(logId: string, updates: {
+  status: string;
+  outputPreview?: string;
+  error?: string;
+  durationMs?: number;
+  tokensUsed?: number;
+  cost?: number;
+  completedAt?: number;
+}): void {
+  const sets: string[] = ['status = ?'];
+  const vals: unknown[] = [updates.status];
+
+  if (updates.outputPreview !== undefined) {
+    sets.push('output_preview = ?');
+    vals.push(truncate(updates.outputPreview));
+  }
+  if (updates.error !== undefined) {
+    sets.push('error = ?');
+    vals.push(updates.error);
+  }
+  if (updates.durationMs !== undefined) {
+    sets.push('duration_ms = ?');
+    vals.push(updates.durationMs);
+  }
+  if (updates.tokensUsed !== undefined) {
+    sets.push('tokens_used = ?');
+    vals.push(updates.tokensUsed);
+  }
+  if (updates.cost !== undefined) {
+    sets.push('cost = ?');
+    vals.push(updates.cost);
+  }
+  if (updates.completedAt !== undefined) {
+    sets.push('completed_at = ?');
+    vals.push(updates.completedAt);
+  }
+
+  vals.push(logId);
+  run(`UPDATE workflow_execution_logs SET ${sets.join(', ')} WHERE id = ?`, vals);
+}
+
 // 执行工作流
-export async function executeWorkflow(workflowId: string, input: string = ''): Promise<void> {
+export async function executeWorkflow(workflowId: string, input: string = ''): Promise<string> {
   const row = queryOne('SELECT * FROM workflows WHERE id = ?', [workflowId]);
   if (!row) throw new Error('工作流不存在');
 
@@ -87,22 +179,26 @@ export async function executeWorkflow(workflowId: string, input: string = ''): P
 
   if (nodes.length === 0) throw new Error('工作流没有节点');
 
+  const executionId = uuid();
+
   // 更新状态为运行中
-  run("UPDATE workflows SET status = 'running', updated_at = ? WHERE id = ?", [Date.now(), workflowId]);
-  broadcast('workflow:progress', { workflowId, status: 'running' });
+  run("UPDATE workflows SET status = 'running', updated_at = ?, last_run_at = ? WHERE id = ?", [Date.now(), Date.now(), workflowId]);
+  broadcast('workflow:progress', { workflowId, executionId, status: 'running' });
 
   const ctx: ExecutionContext = {
     workflowId,
+    executionId,
     nodes,
     edges,
     nodeOutputs: new Map(),
     completed: new Set(),
     workflowInput: input,
     finalOutputs: new Map(),
+    nodeStartTimes: new Map(),
   };
 
   const layers = topologicalSort(nodes, edges);
-  console.log(`[工作流引擎] 工作流 ${workflowId} 开始执行，${layers.length} 层，${nodes.length} 个节点`);
+  console.log(`[工作流引擎] 工作流 ${workflowId} 开始执行 (executionId=${executionId})，${layers.length} 层，${nodes.length} 个节点`);
 
   try {
     for (let layerIdx = 0; layerIdx < layers.length; layerIdx++) {
@@ -115,6 +211,7 @@ export async function executeWorkflow(workflowId: string, input: string = ''): P
       // 层间广播进度
       broadcast('workflow:progress', {
         workflowId,
+        executionId,
         layerIndex: layerIdx,
         totalLayers: layers.length,
         completedNodes: ctx.completed.size,
@@ -128,12 +225,14 @@ export async function executeWorkflow(workflowId: string, input: string = ''): P
       "UPDATE workflows SET status = 'completed', variables = ?, updated_at = ? WHERE id = ?",
       [JSON.stringify(results), Date.now(), workflowId]
     );
-    broadcast('workflow:progress', { workflowId, status: 'completed', results });
+    broadcast('workflow:progress', { workflowId, executionId, status: 'completed', results });
     console.log(`[工作流引擎] 工作流 ${workflowId} 执行完成`);
+    return executionId;
   } catch (err) {
     run("UPDATE workflows SET status = 'failed', updated_at = ? WHERE id = ?", [Date.now(), workflowId]);
-    broadcast('workflow:progress', { workflowId, status: 'failed', error: String(err) });
+    broadcast('workflow:progress', { workflowId, executionId, status: 'failed', error: String(err) });
     console.error(`[工作流引擎] 工作流 ${workflowId} 执行失败:`, err);
+    return executionId;
   }
 }
 
@@ -142,49 +241,118 @@ async function executeNode(ctx: ExecutionContext, nodeId: string): Promise<void>
   const node = ctx.nodes.find(n => n.id === nodeId);
   if (!node) return;
 
-  // 广播节点开始
-  broadcast('workflow:node_start', { workflowId: ctx.workflowId, nodeId, nodeType: node.type, agentId: node.data?.agentId });
-  console.log(`[工作流引擎] 节点 ${nodeId} (${node.data?.label || node.type}) 开始执行`);
+  const startedAt = Date.now();
+  ctx.nodeStartTimes.set(nodeId, startedAt);
 
-  let output: string;
+  // 收集上游输入用于日志
+  const upstreamOutputs = getUpstreamOutputs(ctx, nodeId);
+  const inputPreview = node.type === 'input'
+    ? ctx.workflowInput
+    : upstreamOutputs.join('\n');
 
-  switch (node.type) {
-    case 'input':
-      output = await executeInputNode(ctx, node);
-      break;
-    case 'agent':
-      output = await executeAgentNode(ctx, node);
-      break;
-    case 'router':
-      output = executePassthroughNode(ctx, node);
-      break;
-    case 'aggregator':
-      output = executeAggregatorNode(ctx, node);
-      break;
-    case 'output':
-      output = executeOutputNode(ctx, node);
-      break;
-    default:
-      output = `[未知节点类型: ${node.type}]`;
-  }
-
-  ctx.nodeOutputs.set(nodeId, output);
-  ctx.completed.add(nodeId);
-
-  // 广播节点完成
-  broadcast('workflow:node_complete', {
+  // 写入开始日志
+  const logId = uuid();
+  insertExecutionLog({
+    id: logId,
     workflowId: ctx.workflowId,
+    executionId: ctx.executionId,
     nodeId,
     nodeType: node.type,
     agentId: node.data?.agentId,
-    result: output,
+    status: 'running',
+    inputPreview,
+    startedAt,
   });
 
-  // 标记相关边为活跃
-  const activeEdges = ctx.edges
-    .filter(e => e.source === nodeId)
-    .map(e => e.id);
-  broadcast('workflow:edge_active', { workflowId: ctx.workflowId, edgeIds: activeEdges });
+  // 广播节点开始
+  broadcast('workflow:node_start', { workflowId: ctx.workflowId, executionId: ctx.executionId, nodeId, nodeType: node.type, agentId: node.data?.agentId });
+  console.log(`[工作流引擎] 节点 ${nodeId} (${node.data?.label || node.type}) 开始执行`);
+
+  let output: string;
+  let tokensUsed: number | undefined;
+  let cost: number | undefined;
+
+  try {
+    switch (node.type) {
+      case 'input':
+        output = await executeInputNode(ctx, node);
+        break;
+      case 'agent': {
+        const agentResult = await executeAgentNode(ctx, node);
+        output = agentResult.output;
+        tokensUsed = agentResult.tokens;
+        cost = agentResult.cost;
+        break;
+      }
+      case 'router':
+        output = executePassthroughNode(ctx, node);
+        break;
+      case 'aggregator':
+        output = executeAggregatorNode(ctx, node);
+        break;
+      case 'output':
+        output = executeOutputNode(ctx, node);
+        break;
+      default:
+        output = `[未知节点类型: ${node.type}]`;
+    }
+
+    ctx.nodeOutputs.set(nodeId, output);
+    ctx.completed.add(nodeId);
+
+    const completedAt = Date.now();
+    const durationMs = completedAt - startedAt;
+
+    // 更新日志为完成
+    updateExecutionLog(logId, {
+      status: 'completed',
+      outputPreview: output,
+      durationMs,
+      tokensUsed,
+      cost,
+      completedAt,
+    });
+
+    // 广播节点完成
+    broadcast('workflow:node_complete', {
+      workflowId: ctx.workflowId,
+      executionId: ctx.executionId,
+      nodeId,
+      nodeType: node.type,
+      agentId: node.data?.agentId,
+      result: output,
+      durationMs,
+      tokensUsed,
+      cost,
+    });
+
+    // 标记相关边为活跃
+    const activeEdges = ctx.edges
+      .filter(e => e.source === nodeId)
+      .map(e => e.id);
+    broadcast('workflow:edge_active', { workflowId: ctx.workflowId, edgeIds: activeEdges });
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : '未知错误';
+    const completedAt = Date.now();
+
+    updateExecutionLog(logId, {
+      status: 'failed',
+      error: errorMsg,
+      durationMs: completedAt - startedAt,
+      completedAt,
+    });
+
+    broadcast('workflow:node_complete', {
+      workflowId: ctx.workflowId,
+      executionId: ctx.executionId,
+      nodeId,
+      nodeType: node.type,
+      agentId: node.data?.agentId,
+      result: `执行失败: ${errorMsg}`,
+    });
+
+    throw err;
+  }
 }
 
 // 输入节点：透传用户输入
@@ -198,16 +366,18 @@ async function executeInputNode(_ctx: ExecutionContext, node: WorkflowNode): Pro
 }
 
 // Agent 节点：调用 Claude API
-async function executeAgentNode(ctx: ExecutionContext, node: WorkflowNode): Promise<string> {
+async function executeAgentNode(
+  ctx: ExecutionContext, node: WorkflowNode
+): Promise<{ output: string; tokens?: number; cost?: number }> {
   const agentId = node.data?.agentId as string | undefined;
 
   if (!agentId) {
-    return `[${node.data?.label || 'Agent'}] 未关联员工，跳过执行`;
+    return { output: `[${node.data?.label || 'Agent'}] 未关联员工，跳过执行` };
   }
 
   // 检查 SDK 是否可用
   if (!isSdkAvailable()) {
-    return `[${node.data?.label || 'Agent'}] Claude API 未配置，无法执行`;
+    return { output: `[${node.data?.label || 'Agent'}] Claude API 未配置，无法执行` };
   }
 
   // 从数据库获取 Agent 信息
@@ -217,7 +387,7 @@ async function executeAgentNode(ctx: ExecutionContext, node: WorkflowNode): Prom
   }>('SELECT name, role, model, custom_instructions FROM agents WHERE id = ?', [agentId]);
 
   if (!agent) {
-    return `[${node.data?.label || 'Agent'}] 员工不存在 (ID: ${agentId})`;
+    return { output: `[${node.data?.label || 'Agent'}] 员工不存在 (ID: ${agentId})` };
   }
 
   // 收集上游输出作为上下文
@@ -249,11 +419,15 @@ async function executeAgentNode(ctx: ExecutionContext, node: WorkflowNode): Prom
       [result.tokens, result.cost, Date.now(), agentId]
     );
 
-    return result.result;
+    return {
+      output: result.result,
+      tokens: result.tokens,
+      cost: result.cost,
+    };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : '未知错误';
     console.error(`[工作流引擎] Agent ${agent.name} 调用失败:`, errorMsg);
-    return `[${agent.name}] 执行失败: ${errorMsg}`;
+    return { output: `[${agent.name}] 执行失败: ${errorMsg}` };
   }
 }
 

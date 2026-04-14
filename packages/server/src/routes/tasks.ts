@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { queryAll, queryOne, run } from '../db/connection.js';
+import { broadcast } from '../ws/connection.js';
 import { v4 as uuid } from 'uuid';
-import type { TaskStatus, TaskPriority } from '@dark-boss/shared';
 
 const router = Router();
 
@@ -61,13 +61,12 @@ router.post('/', (req, res) => {
         body.assignedAgentId || null, body.departmentId || null,
         body.workflowId || null, body.estimatedMinutes || null,
         body.dueAt || null,
-        // column_order: 放到同列末尾
-        now,
-        now, now,
+        now, now, now,
       ]
     );
 
     const task = queryOne('SELECT * FROM tasks WHERE id = ?', [id]);
+    broadcast('task:updated', { taskId: id, action: 'created' });
     res.status(201).json(task);
   } catch (err) {
     console.error('创建任务失败:', err);
@@ -98,6 +97,7 @@ router.patch('/:id', (req, res) => {
     run(`UPDATE tasks SET ${sets.join(', ')} WHERE id = ?`, vals);
 
     const updated = queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
+    broadcast('task:updated', { taskId: req.params.id, action: 'updated' });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: '更新任务失败' });
@@ -107,7 +107,7 @@ router.patch('/:id', (req, res) => {
 // 移动任务（看板拖拽）
 router.patch('/:id/move', (req, res) => {
   try {
-    const { status, columnOrder } = req.body as { status: TaskStatus; columnOrder: number };
+    const { status, columnOrder } = req.body as { status: string; columnOrder: number };
     if (!status) return res.status(400).json({ error: '必须指定目标状态' });
 
     const existing = queryOne('SELECT id, status FROM tasks WHERE id = ?', [req.params.id]);
@@ -132,9 +132,29 @@ router.patch('/:id/move', (req, res) => {
     run(`UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`, vals);
 
     const updated = queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
+    broadcast('task:updated', { taskId: req.params.id, action: 'moved', status });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: '移动任务失败' });
+  }
+});
+
+// Agent 拉取下一个任务并执行（放在 /:id 之前避免路由冲突）
+router.post('/agent/:agentId/pull-task', async (req, res) => {
+  try {
+    const agent = queryOne('SELECT id FROM agents WHERE id = ?', [req.params.agentId]);
+    if (!agent) return res.status(404).json({ error: 'Agent 不存在' });
+
+    const { pullAndExecuteTask } = await import('../services/task-executor.js');
+    const taskId = await pullAndExecuteTask(req.params.agentId);
+
+    if (!taskId) {
+      return res.json({ success: true, message: '没有待办任务', taskId: null });
+    }
+    res.json({ success: true, message: '已拉取任务并开始执行', taskId });
+  } catch (err) {
+    console.error('拉取任务失败:', err);
+    res.status(500).json({ error: '拉取任务失败' });
   }
 });
 
@@ -150,9 +170,31 @@ router.post('/:id/assign/:agentId', (req, res) => {
     run('UPDATE tasks SET assigned_agent_id = ?, updated_at = ? WHERE id = ?', [req.params.agentId, Date.now(), req.params.id]);
 
     const updated = queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
+    broadcast('task:updated', { taskId: req.params.id, action: 'assigned' });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: '分配任务失败' });
+  }
+});
+
+// 执行任务（手动触发）
+router.post('/:id/execute', async (req, res) => {
+  try {
+    const existing = queryOne('SELECT id, status, assigned_agent_id FROM tasks WHERE id = ?', [req.params.id]);
+    if (!existing) return res.status(404).json({ error: '任务不存在' });
+    if (existing.status === 'done') return res.status(400).json({ error: '任务已完成' });
+    if (!existing.assigned_agent_id) return res.status(400).json({ error: '任务未指派给员工' });
+
+    // 异步执行，立即返回
+    const { executeTask } = await import('../services/task-executor.js');
+    executeTask(req.params.id).catch(err => {
+      console.error('任务执行失败:', err);
+    });
+
+    res.json({ success: true, message: '任务开始执行' });
+  } catch (err) {
+    console.error('启动任务执行失败:', err);
+    res.status(500).json({ error: '启动任务执行失败' });
   }
 });
 
@@ -160,6 +202,7 @@ router.post('/:id/assign/:agentId', (req, res) => {
 router.delete('/:id', (req, res) => {
   try {
     run('DELETE FROM tasks WHERE id = ?', [req.params.id]);
+    broadcast('task:updated', { taskId: req.params.id, action: 'deleted' });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: '删除任务失败' });
