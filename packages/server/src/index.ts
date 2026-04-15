@@ -25,11 +25,12 @@ if (fs.existsSync(envPath)) {
 // 动态导入（在 .env 加载之后执行，确保 config.ts 能读到环境变量）
 const http = await import('node:http');
 const { createApp } = await import('./app.js');
-const { initDatabase, save } = await import('./db/connection.js');
+const { initDatabase, save, closeDatabase } = await import('./db/connection.js');
 const { seed } = await import('./db/seed.js');
-const { createWsServer } = await import('./ws/connection.js');
+const { createWsServer, closeWsServer } = await import('./ws/connection.js');
 const { config, isClaudeSdkAvailable, getClaudeEnv } = await import('./utils/config.js');
 const { snapshotAll } = await import('./services/performance-service.js');
+const { restoreProcesses, shutdownAll } = await import('./services/agent-process-manager.js');
 
 async function main() {
   // 初始化数据库
@@ -39,11 +40,14 @@ async function main() {
   seed();
 
   // 定期保存（sql.js 是内存数据库，需要持久化到文件）
-  setInterval(save, 30000);
+  const saveInterval = setInterval(save, 30000);
 
   // 每小时计算绩效快照
   snapshotAll(); // 启动时立即计算一次
-  setInterval(snapshotAll, 60 * 60 * 1000);
+  const snapshotInterval = setInterval(snapshotAll, 60 * 60 * 1000);
+
+  // 恢复 Agent 进程状态
+  restoreProcesses();
 
   // 创建 Express 应用
   const app = createApp();
@@ -53,6 +57,55 @@ async function main() {
 
   // 启动 WebSocket 服务器
   createWsServer(server);
+
+  // 优雅退出处理
+  let isShuttingDown = false;
+  async function gracefulShutdown(signal: string) {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
+    console.log(`\n[暗黑老板] 收到 ${signal}，正在优雅退出...`);
+
+    // 停止定时器
+    clearInterval(saveInterval);
+    clearInterval(snapshotInterval);
+
+    try {
+      // 1. 停止所有 Agent 子进程
+      shutdownAll();
+
+      // 2. 关闭 WebSocket 服务器
+      await closeWsServer();
+
+      // 3. 关闭 HTTP 服务器（带超时保护）
+      await new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          console.log('[暗黑老板] HTTP 服务器关闭超时，强制退出');
+          resolve();
+        }, 3000);
+
+        server.close(() => {
+          clearTimeout(timeout);
+          console.log('[暗黑老板] HTTP 服务器已关闭');
+          resolve();
+        });
+      });
+
+      // 4. 持久化并关闭数据库
+      closeDatabase();
+    } catch (err) {
+      console.error('[暗黑老板] 退出时出错:', err);
+    }
+
+    console.log('[暗黑老板] 退出完成');
+    process.exit(0);
+  }
+
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
+  // Windows 下 Ctrl+C 可能不触发 SIGINT，补充处理
+  process.on('SIGHUP', () => gracefulShutdown('SIGHUP'));
 
   server.listen(config.port, config.host, () => {
     console.log(`[暗黑老板] 服务器已启动: http://${config.host}:${config.port}`);

@@ -13,6 +13,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client.js';
 import type { Agent } from '@dark-boss/shared';
 import { AGENT_ROLES, AGENT_STATUS_COLORS, AGENT_STATUS_LABELS } from '@dark-boss/shared';
+import { AgentTerminal } from '../../components/agent/agent-terminal.js';
+import { FileExplorer } from '../../components/agent/file-explorer.js';
+import { ContextMeter } from '../../components/agent/context-meter.js';
 
 const { Title, Text } = Typography;
 
@@ -280,7 +283,12 @@ export function AgentsPage() {
 
       {/* 员工详情弹窗 */}
       <Modal
-        title={selectedAgent ? `${AGENT_ROLES[selectedAgent.role]?.icon || ''} ${selectedAgent.name}` : '员工详情'}
+        title={selectedAgent ? (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            {`${AGENT_ROLES[selectedAgent.role]?.icon || ''} ${selectedAgent.name}`}
+            <ContextMeter agentId={selectedAgent.id} size={28} />
+          </span>
+        ) : '员工详情'}
         open={detailModalOpen}
         onCancel={() => { setDetailModalOpen(false); setSelectedAgent(null); }}
         footer={null}
@@ -342,7 +350,30 @@ export function AgentsPage() {
             {
               key: 'logs',
               label: '执行日志',
-              children: <AgentEventsPanel agentId={selectedAgent.id} />,
+              children: <AgentEventsPanel key={selectedAgent.id} agentId={selectedAgent.id} />,
+            },
+            {
+              key: 'terminal',
+              label: '终端',
+              children: (
+                <AgentTerminal
+                  agentId={selectedAgent.id}
+                  agentName={selectedAgent.name}
+                  height={400}
+                />
+              ),
+            },
+            {
+              key: 'files',
+              label: '文件',
+              children: (
+                <FileExplorer
+                  key={selectedAgent.id}
+                  workingDir={selectedAgent.cwd}
+                  agentId={selectedAgent.id}
+                  height={450}
+                />
+              ),
             },
           ]} />
         )}

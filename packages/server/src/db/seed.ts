@@ -1,4 +1,4 @@
-import { getDb, run, queryAll, save } from './connection.js';
+import { run, queryAll, save } from './connection.js';
 import { v4 as uuid } from 'uuid';
 
 export function seed() {

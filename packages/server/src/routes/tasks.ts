@@ -209,4 +209,35 @@ router.delete('/:id', (req, res) => {
   }
 });
 
+// Boss 委托：将任务分解并分配给团队成员
+router.post('/delegate', async (req, res) => {
+  try {
+    const { bossAgentId, taskDescription } = req.body as {
+      bossAgentId: string;
+      taskDescription: string;
+    };
+    if (!bossAgentId || !taskDescription) {
+      return res.status(400).json({ error: '必须指定 bossAgentId 和 taskDescription' });
+    }
+
+    const { delegateTask, executeDelegation } = await import('../services/boss-delegation.js');
+    const result = await delegateTask(bossAgentId, taskDescription);
+
+    // 异步执行子任务
+    executeDelegation(result.parentTaskId).catch(err => {
+      console.error('[Boss 委托] 子任务执行失败:', err);
+    });
+
+    res.json({
+      success: true,
+      parentTaskId: result.parentTaskId,
+      subTaskCount: result.subTasks.length,
+      subTasks: result.subTasks,
+    });
+  } catch (err) {
+    console.error('Boss 委托失败:', err);
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Boss 委托失败' });
+  }
+});
+
 export default router;

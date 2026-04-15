@@ -250,6 +250,43 @@ function createTables() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_exec_log_workflow ON workflow_execution_logs(workflow_id)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_exec_log_execution ON workflow_execution_logs(execution_id)`);
 
+  // Agent 会话表
+  db.run(`
+    CREATE TABLE IF NOT EXISTS agent_sessions (
+      id TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL REFERENCES agents(id),
+      session_id TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      working_dir TEXT NOT NULL,
+      last_message_id TEXT,
+      token_count INTEGER DEFAULT 0,
+      context_tokens INTEGER DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    )
+  `);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sessions_agent ON agent_sessions(agent_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_sessions_status ON agent_sessions(status)`);
+
+  // Agent 文件变更记录表
+  db.run(`
+    CREATE TABLE IF NOT EXISTS agent_file_changes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      agent_id TEXT NOT NULL REFERENCES agents(id),
+      session_id TEXT,
+      file_path TEXT NOT NULL,
+      action TEXT NOT NULL DEFAULT 'modify',
+      diff_summary TEXT,
+      old_content TEXT,
+      new_content TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    )
+  `);
+
+  db.run(`CREATE INDEX IF NOT EXISTS idx_file_changes_agent ON agent_file_changes(agent_id)`);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_file_changes_created ON agent_file_changes(created_at)`);
+
   save();
 }
 
@@ -296,4 +333,12 @@ export function run(sql: string, params?: unknown[]) {
     d.run(sql);
   }
   save();
+}
+
+export function closeDatabase(): void {
+  if (db) {
+    save();
+    db.close();
+    console.log('[数据库] 已持久化并关闭');
+  }
 }

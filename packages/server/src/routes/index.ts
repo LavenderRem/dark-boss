@@ -6,6 +6,7 @@ import workflowRoutes from './workflows.js';
 import taskRoutes from './tasks.js';
 import chatRoutes from './chat.js';
 import performanceRoutes from './performance.js';
+import fileRoutes from './files.js';
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use('/workflows', workflowRoutes);
 router.use('/tasks', taskRoutes);
 router.use('/chat', chatRoutes);
 router.use('/performance', performanceRoutes);
+router.use('/files', fileRoutes);
 
 export default router;

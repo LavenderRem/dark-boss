@@ -14,6 +14,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../api/client.js';
 import type { Agent } from '@dark-boss/shared';
+import { ContextMeter } from '../agent/context-meter.js';
 
 const { Sider, Header, Content } = Layout;
 
@@ -40,6 +41,7 @@ export function AppLayout() {
 
   const onlineCount = agents.filter(a => a.status !== 'offline').length;
   const totalTokens = agents.reduce((sum, a) => sum + (a.tokensUsed || 0), 0);
+  const workingAgent = agents.find(a => a.status === 'working');
 
   return (
     <Layout style={{ height: '100vh' }}>
@@ -83,10 +85,13 @@ export function AppLayout() {
           <span style={{ color: '#8c8c8c', fontSize: 13 }}>
             AI Agent 编排平台
           </span>
-          <div style={{ display: 'flex', gap: 16, color: '#8c8c8c', fontSize: 13 }}>
+          <div style={{ display: 'flex', gap: 16, color: '#8c8c8c', fontSize: 13, alignItems: 'center' }}>
             <span>员工: {agents.length}</span>
             <span>在线: {onlineCount}</span>
             <span>Token: {totalTokens > 0 ? `${(totalTokens / 1000).toFixed(1)}k` : '0'}</span>
+            {workingAgent && (
+              <ContextMeter agentId={workingAgent.id} size={28} showLabel={false} />
+            )}
           </div>
         </Header>
         <Content style={{

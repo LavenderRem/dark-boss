@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { queryAll, queryOne, run } from '../db/connection.js';
 import { v4 as uuid } from 'uuid';
 import type { CreateAgentRequest, UpdateAgentRequest } from '@dark-boss/shared';
+import { invalidateAgentDirs } from './files.js';
 
 const router = Router();
 
@@ -62,6 +63,8 @@ router.post('/', (req, res) => {
     );
 
     const agent = queryOne('SELECT * FROM agents WHERE id = ?', [id]);
+    // 新 Agent 可能有新的工作目录，刷新文件浏览允许列表
+    invalidateAgentDirs();
     res.status(201).json(agent);
   } catch (err) {
     console.error('创建 Agent 失败:', err);
@@ -128,6 +131,81 @@ router.get('/:id/events', (req, res) => {
     res.json({ events, total: total?.count || 0 });
   } catch (err) {
     res.status(500).json({ error: '获取事件日志失败' });
+  }
+});
+
+// 获取 Agent 会话历史
+router.get('/:id/sessions', (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+    const sessions = queryAll(
+      'SELECT * FROM agent_sessions WHERE agent_id = ? ORDER BY updated_at DESC LIMIT ?',
+      [req.params.id, limit]
+    );
+    res.json({ sessions });
+  } catch (err) {
+    res.status(500).json({ error: '获取会话历史失败' });
+  }
+});
+
+// 恢复 Agent 会话
+router.post('/:id/sessions/:sessionId/restore', (req, res) => {
+  try {
+    const session = queryOne(
+      'SELECT * FROM agent_sessions WHERE agent_id = ? AND session_id = ?',
+      [req.params.id, req.params.sessionId]
+    );
+    if (!session) return res.status(404).json({ error: '会话不存在' });
+
+    // 更新会话状态为活跃
+    run(
+      "UPDATE agent_sessions SET status = 'active', updated_at = ? WHERE id = ?",
+      [Date.now(), session.id]
+    );
+
+    res.json({ success: true, sessionId: req.params.sessionId });
+  } catch (err) {
+    res.status(500).json({ error: '恢复会话失败' });
+  }
+});
+
+// 获取 Agent 上下文使用详情
+router.get('/:id/context', (req, res) => {
+  try {
+    const agent = queryOne<{ id: string; model: string; tokens_used: number }>(
+      'SELECT id, model, tokens_used FROM agents WHERE id = ?',
+      [req.params.id]
+    );
+    if (!agent) return res.status(404).json({ error: 'Agent 不存在' });
+
+    // 获取当前活跃会话
+    const activeSession = queryOne<{ session_id: string; token_count: number; created_at: number }>(
+      "SELECT session_id, token_count, created_at FROM agent_sessions WHERE agent_id = ? AND status = 'active' ORDER BY updated_at DESC LIMIT 1",
+      [req.params.id]
+    );
+
+    // 模型上下文窗口大小
+    const contextLimits: Record<string, number> = {
+      sonnet: 200000,
+      opus: 200000,
+      haiku: 200000,
+    };
+    const maxTokens = contextLimits[agent.model] || 200000;
+    const usedTokens = activeSession?.token_count || 0;
+    const usagePercent = maxTokens > 0 ? Math.min((usedTokens / maxTokens) * 100, 100) : 0;
+
+    res.json({
+      agentId: agent.id,
+      model: agent.model,
+      maxTokens,
+      usedTokens,
+      usagePercent: Math.round(usagePercent * 10) / 10,
+      status: usagePercent < 60 ? 'green' : usagePercent < 80 ? 'yellow' : 'red',
+      sessionId: activeSession?.session_id || null,
+      totalTokensUsed: agent.tokens_used,
+    });
+  } catch (err) {
+    res.status(500).json({ error: '获取上下文信息失败' });
   }
 });
 

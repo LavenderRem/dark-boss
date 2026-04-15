@@ -8,6 +8,10 @@ export type ServerEventType =
   | 'agent:tool_result'    // 工具使用结果
   | 'agent:error'          // 错误事件
   | 'agent:complete'       // 任务完成
+  | 'agent:process_output' // Agent 进程终端输出
+  | 'agent:process_status' // Agent 进程状态变更
+  | 'agent:file_change'    // Agent 修改文件
+  | 'agent:token_usage'    // Token 使用量更新
   | 'workflow:progress'    // 工作流步骤进度
   | 'workflow:node_start'  // 节点开始执行
   | 'workflow:node_complete' // 节点完成
@@ -22,6 +26,10 @@ export type ClientEventType =
   | 'agent:unsubscribe'    // 取消订阅
   | 'agent:message'        // 发送消息给 Agent
   | 'agent:interrupt'      // 中断 Agent
+  | 'agent:spawn'          // 启动 Agent 进程
+  | 'agent:stop'           // 停止 Agent 进程
+  | 'agent:restart'        // 重启 Agent 进程
+  | 'agent:send_message'   // 向 Agent 进程发送消息
   | 'workflow:execute'     // 开始工作流
   | 'workflow:pause'       // 暂停工作流
   | 'chat:typing';         // 打字指示器
@@ -99,4 +107,38 @@ export interface ChatMessagePayload {
   senderAgentId?: string;
   content: string;
   messageType?: 'text' | 'markdown' | 'system';
+}
+
+// Agent 进程输出事件
+export interface AgentProcessOutputPayload {
+  agentId: string;
+  text: string;
+  channel: 'stdout' | 'stderr' | 'stdin' | 'tool' | 'tool_result';
+  toolName?: string;
+  toolInput?: string;
+}
+
+// Agent 进程状态事件
+export interface AgentProcessStatusPayload {
+  agentId: string;
+  status: 'starting' | 'running' | 'idle' | 'stopping' | 'stopped' | 'error';
+  sessionId?: string;
+  pid?: number;
+  exitCode?: number | null;
+  error?: string;
+}
+
+// Agent 文件变更事件
+export interface AgentFileChangePayload {
+  agentId: string;
+  path: string;
+  action: 'create' | 'modify' | 'delete';
+}
+
+// Agent Token 使用事件
+export interface AgentTokenUsagePayload {
+  agentId: string;
+  tokens: number;
+  inputTokens: number;
+  outputTokens: number;
 }
