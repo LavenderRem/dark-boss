@@ -333,7 +333,7 @@ export function ModelSettingsPage() {
         <Table
           columns={tierColumns}
           dataSource={tiers}
-          rowKey="tierId"
+          rowKey="tier"
           loading={tiersLoading}
           pagination={false}
           size="small"
