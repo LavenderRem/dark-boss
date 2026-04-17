@@ -9,7 +9,7 @@ export function seed() {
   if (existingProviders.length === 0) {
     console.log('初始化预设模型提供商...');
     const providers = [
-      { id: uuid(), name: '智谱 (GLM)', protocol: 'anthropic', baseUrl: 'https://open.bigmodel.cn/api/paas/v4' },
+      { id: uuid(), name: '智谱 (GLM)', protocol: 'anthropic', baseUrl: 'https://open.bigmodel.cn/api/paas/anthropic' },
       { id: uuid(), name: 'OpenAI', protocol: 'openai', baseUrl: 'https://api.openai.com/v1' },
       { id: uuid(), name: 'Anthropic', protocol: 'anthropic', baseUrl: 'https://api.anthropic.com' },
       { id: uuid(), name: 'DeepSeek', protocol: 'openai', baseUrl: 'https://api.deepseek.com' },
