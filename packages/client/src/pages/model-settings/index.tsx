@@ -21,6 +21,8 @@ export function ModelSettingsPage() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addForm] = Form.useForm();
   const [visibleKeys, setVisibleKeys] = useState<Record<string, boolean>>({});
+  // 档位映射编辑态：{ tier: { providerId, modelName } }
+  const [tierEdits, setTierEdits] = useState<Record<string, { providerId: string | null; modelName: string }>>({});
 
   const { data: providers = [] } = useQuery<ModelProvider[]>({
     queryKey: ['providers'],
@@ -137,6 +139,22 @@ export function ModelSettingsPage() {
 
   const activeProviders = providers.filter((p) => p.isActive && p.apiKey);
 
+  // 获取某行的编辑态值，未编辑过则用服务端数据
+  const getTierEdit = (record: ModelTierMapping) => {
+    const edit = tierEdits[record.tier];
+    return {
+      providerId: edit?.providerId !== undefined ? edit.providerId : record.providerId,
+      modelName: edit?.modelName !== undefined ? edit.modelName : (record.modelName ?? ''),
+    };
+  };
+
+  // 检查某行是否有未保存的修改
+  const isTierDirty = (record: ModelTierMapping) => {
+    const edit = tierEdits[record.tier];
+    if (!edit) return false;
+    return edit.providerId !== record.providerId || edit.modelName !== (record.modelName ?? '');
+  };
+
   const tierColumns = [
     {
       title: '档位',
@@ -161,16 +179,15 @@ export function ModelSettingsPage() {
       title: '提供商',
       dataIndex: 'providerId',
       key: 'providerId',
-      render: (providerId: string | null, record: ModelTierMapping) => (
+      render: (_: unknown, record: ModelTierMapping) => (
         <Select
           style={{ width: '100%' }}
           placeholder="选择提供商"
-          value={providerId}
-          onChange={(value) => updateTierMutation.mutate({
-            tier: record.tier,
-            providerId: value ?? null,
-            modelName: record.modelName,
-          })}
+          value={getTierEdit(record).providerId}
+          onChange={(value) => setTierEdits((prev) => ({
+            ...prev,
+            [record.tier]: { ...getTierEdit(record), providerId: value ?? null },
+          }))}
           options={activeProviders.map((p) => ({ label: p.name, value: p.id }))}
           allowClear
         />
@@ -180,23 +197,50 @@ export function ModelSettingsPage() {
       title: '模型',
       dataIndex: 'modelName',
       key: 'modelName',
-      render: (modelName: string | null, record: ModelTierMapping) => (
+      render: (_: unknown, record: ModelTierMapping) => (
         <Input
           style={{ width: '100%' }}
           placeholder="输入模型名称"
-          defaultValue={modelName ?? ''}
-          onBlur={(e) => {
-            const value = e.target.value.trim();
-            if (value && value !== record.modelName) {
-              updateTierMutation.mutate({
-                tier: record.tier,
-                providerId: record.providerId,
-                modelName: value,
-              });
-            }
-          }}
+          value={getTierEdit(record).modelName}
+          onChange={(e) => setTierEdits((prev) => ({
+            ...prev,
+            [record.tier]: { ...getTierEdit(record), modelName: e.target.value },
+          }))}
         />
       ),
+    },
+    {
+      title: '操作',
+      key: 'action',
+      width: 100,
+      render: (_: unknown, record: ModelTierMapping) => {
+        const dirty = isTierDirty(record);
+        const { providerId, modelName } = getTierEdit(record);
+        return (
+          <Button
+            type="primary"
+            size="small"
+            disabled={!dirty || !providerId || !modelName.trim()}
+            loading={updateTierMutation.isPending}
+            onClick={() => {
+              updateTierMutation.mutate(
+                { tier: record.tier, providerId, modelName: modelName.trim() },
+                {
+                  onSuccess: () => {
+                    setTierEdits((prev) => {
+                      const next = { ...prev };
+                      delete next[record.tier];
+                      return next;
+                    });
+                  },
+                },
+              );
+            }}
+          >
+            保存
+          </Button>
+        );
+      },
     },
   ];
 
