@@ -40,18 +40,25 @@ export function encrypt(plaintext: string): string {
   return [iv.toString('base64'), authTag.toString('base64'), encrypted.toString('base64')].join(':');
 }
 
-/** 解密 "iv:authTag:ciphertext" 格式密文 */
+/** 解密 "iv:authTag:ciphertext" 格式密文，失败返回空字符串 */
 export function decrypt(ciphertext: string): string {
   if (!ciphertext) return '';
-  const key = getKey();
-  const [ivB64, authTagB64, dataB64] = ciphertext.split(':');
-  const iv = Buffer.from(ivB64, 'base64');
-  const authTag = Buffer.from(authTagB64, 'base64');
-  const data = Buffer.from(dataB64, 'base64');
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-  decipher.setAuthTag(authTag);
-  const decrypted = Buffer.concat([decipher.update(data), decipher.final()]);
-  return decrypted.toString('utf8');
+  try {
+    const key = getKey();
+    const parts = ciphertext.split(':');
+    if (parts.length !== 3) return '';
+    const [ivB64, authTagB64, dataB64] = parts;
+    const iv = Buffer.from(ivB64, 'base64');
+    const authTag = Buffer.from(authTagB64, 'base64');
+    const data = Buffer.from(dataB64, 'base64');
+    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+    decipher.setAuthTag(authTag);
+    const decrypted = Buffer.concat([decipher.update(data), decipher.final()]);
+    return decrypted.toString('utf8');
+  } catch {
+    console.warn('[加密] 解密失败，可能密钥已变更，请重新配置 API Key');
+    return '';
+  }
 }
 
 /** 脱敏 API Key */
