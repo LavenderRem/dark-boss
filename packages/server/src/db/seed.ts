@@ -87,6 +87,37 @@ export function seed() {
     );
   }
 
+  // 预设模型提供商（不含 API Key）
+  const existingProviders = queryAll('SELECT id FROM model_providers LIMIT 1');
+  if (existingProviders.length === 0) {
+    console.log('初始化预设模型提供商...');
+    const providers = [
+      { id: uuid(), name: '智谱 (GLM)', protocol: 'anthropic', baseUrl: 'https://open.bigmodel.cn/api/paas/v4' },
+      { id: uuid(), name: 'OpenAI', protocol: 'openai', baseUrl: 'https://api.openai.com/v1' },
+      { id: uuid(), name: 'Anthropic', protocol: 'anthropic', baseUrl: 'https://api.anthropic.com' },
+      { id: uuid(), name: 'DeepSeek', protocol: 'openai', baseUrl: 'https://api.deepseek.com' },
+    ];
+    for (const p of providers) {
+      run(
+        'INSERT INTO model_providers (id, name, protocol, base_url, api_key, is_active, created_at) VALUES (?, ?, ?, ?, ?, 1, ?)',
+        [p.id, p.name, p.protocol, p.baseUrl, '', now],
+      );
+    }
+
+    // 初始化档位映射（未指向任何提供商）
+    const tiers: Array<{ tier: string; defaultModel: string }> = [
+      { tier: 'haiku', defaultModel: 'glm-4-flash' },
+      { tier: 'sonnet', defaultModel: 'glm-4' },
+      { tier: 'opus', defaultModel: 'glm-4' },
+    ];
+    for (const t of tiers) {
+      run(
+        'INSERT INTO model_tier_mapping (tier, provider_id, model_name, updated_at) VALUES (?, NULL, ?, ?)',
+        [t.tier, t.defaultModel, now],
+      );
+    }
+  }
+
   save();
   console.log('默认数据初始化完成');
 }
