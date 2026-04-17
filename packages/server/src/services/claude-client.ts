@@ -2,11 +2,12 @@
  * Claude API 封装层
  * 直接调用 Anthropic 兼容 API（支持智谱等），无需 CLI
  */
-import { config, isClaudeSdkAvailable } from '../utils/config.js';
+import { resolveModelConfig } from './model-config-service.js';
+import type { ResolvedModelConfig } from '@dark-boss/shared';
 
 // 类型定义
 interface ApiMessage {
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
@@ -21,14 +22,29 @@ const activeSessions = new Map<string, ApiMessage[]>();
 // 正在进行的请求
 const activeRequests = new Map<string, AbortController>();
 
-// 模型名称映射
-function mapModel(model: 'sonnet' | 'opus' | 'haiku'): string {
-  const map: Record<string, string> = {
-    sonnet: config.anthropicDefaultSonnetModel,
-    opus: config.anthropicDefaultOpusModel,
-    haiku: config.anthropicDefaultHaikuModel,
+// 根据 protocol 构建请求 URL
+function getRequestUrl(resolved: ResolvedModelConfig): string {
+  if (resolved.protocol === 'openai') {
+    return `${resolved.baseUrl}/chat/completions`;
+  }
+  // anthropic 兼容
+  return `${resolved.baseUrl}/v1/messages`;
+}
+
+// 根据 protocol 构建请求头
+function getRequestHeaders(resolved: ResolvedModelConfig): Record<string, string> {
+  if (resolved.protocol === 'openai') {
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${resolved.apiKey}`,
+    };
+  }
+  // anthropic 兼容
+  return {
+    'Content-Type': 'application/json',
+    'x-api-key': resolved.apiKey,
+    'anthropic-version': '2023-06-01',
   };
-  return map[model] || config.anthropicDefaultSonnetModel;
 }
 
 // Agent 配置
@@ -53,7 +69,7 @@ export interface SdkResult {
 
 // 检查 SDK 是否可用
 export function isSdkAvailable(): boolean {
-  return isClaudeSdkAvailable();
+  return resolveModelConfig('sonnet') !== null;
 }
 
 // 流式调用消息类型
@@ -62,20 +78,6 @@ export type SdkStreamMessage =
   | { type: 'complete'; result: SdkResult }
   | { type: 'error'; error: string };
 
-// 构建请求头
-function buildHeaders(): Record<string, string> {
-  return {
-    'Content-Type': 'application/json',
-    'x-api-key': config.anthropicAuthToken,
-    'anthropic-version': '2023-06-01',
-  };
-}
-
-// 获取 API URL
-function getApiUrl(): string {
-  const base = config.anthropicBaseUrl || 'https://api.anthropic.com';
-  return `${base}/v1/messages`;
-}
 
 /**
  * 流式调用（用于聊天回复）
@@ -84,8 +86,9 @@ export async function* streamQuery(
   agent: AgentConfig,
   prompt: string,
 ): AsyncGenerator<SdkStreamMessage> {
-  if (!isSdkAvailable()) {
-    yield { type: 'error', error: 'ANTHROPIC_AUTH_TOKEN 未配置' };
+  const resolved = resolveModelConfig(agent.model);
+  if (!resolved) {
+    yield { type: 'error', error: '未配置模型提供商，请在模型设置中配置' };
     return;
   }
 
@@ -108,26 +111,32 @@ export async function* streamQuery(
     activeSessions.set(agent.name, history);
   }
 
-  const model = mapModel(agent.model);
   const systemPrompt = agent.customInstructions || undefined;
 
   const body: Record<string, unknown> = {
-    model,
+    model: resolved.modelName,
     max_tokens: 4096,
     messages: history,
     stream: true,
   };
-  if (systemPrompt) body.system = systemPrompt;
+
+  if (systemPrompt) {
+    if (resolved.protocol === 'openai') {
+      body.messages = [{ role: 'system', content: systemPrompt }, ...history];
+    } else {
+      body.system = systemPrompt;
+    }
+  }
 
   let fullText = '';
   const startTime = Date.now();
 
   try {
-    console.log(`[Claude API] 流式调用 model=${model}, 历史消息数=${history.length}`);
+    console.log(`[Claude API] 流式调用 model=${resolved.modelName}, protocol=${resolved.protocol}, 历史消息数=${history.length}`);
 
-    const response = await fetch(getApiUrl(), {
+    const response = await fetch(getRequestUrl(resolved), {
       method: 'POST',
-      headers: buildHeaders(),
+      headers: getRequestHeaders(resolved),
       body: JSON.stringify(body),
       signal: ctrl.signal,
     });
@@ -159,12 +168,22 @@ export async function* streamQuery(
 
           try {
             const event = JSON.parse(data);
+            // Anthropic format
             if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta' && event.delta.text) {
               fullText += event.delta.text;
               yield { type: 'text_delta', text: event.delta.text };
             }
             if (event.type === 'message_delta' && event.usage) usage = event.usage;
             if (event.type === 'message_start' && event.message?.usage) usage = event.message.usage;
+            // OpenAI format
+            if (event.choices?.[0]?.delta?.content) {
+              const text = event.choices[0].delta.content;
+              fullText += text;
+              yield { type: 'text_delta', text };
+            }
+            if (event.usage) {
+              usage = { input_tokens: event.usage.prompt_tokens || 0, output_tokens: event.usage.completion_tokens || 0 };
+            }
           } catch { /* 忽略解析错误 */ }
         }
       }
@@ -202,22 +221,28 @@ export async function singleQuery(
   model: 'sonnet' | 'opus' | 'haiku' = 'haiku',
   systemPrompt?: string,
 ): Promise<SdkResult> {
-  if (!isSdkAvailable()) {
-    throw new Error('ANTHROPIC_AUTH_TOKEN 未配置');
+  const resolved = resolveModelConfig(model);
+  if (!resolved) {
+    throw new Error('未配置模型提供商，请在模型设置中配置');
   }
 
   const startTime = Date.now();
   const messages = [{ role: 'user' as const, content: prompt }];
-  const modelId = mapModel(model);
 
-  const body: Record<string, unknown> = { model: modelId, max_tokens: 4096, messages };
-  if (systemPrompt) body.system = systemPrompt;
+  const body: Record<string, unknown> = { model: resolved.modelName, max_tokens: 4096, messages: [...messages] };
+  if (systemPrompt) {
+    if (resolved.protocol === 'openai') {
+      (body.messages as ApiMessage[]).unshift({ role: 'system', content: systemPrompt });
+    } else {
+      body.system = systemPrompt;
+    }
+  }
 
-  console.log(`[Claude API] 单次调用 model=${modelId}`);
+  console.log(`[Claude API] 单次调用 model=${resolved.modelName}, protocol=${resolved.protocol}`);
 
-  const response = await fetch(getApiUrl(), {
+  const response = await fetch(getRequestUrl(resolved), {
     method: 'POST',
-    headers: buildHeaders(),
+    headers: getRequestHeaders(resolved),
     body: JSON.stringify(body),
   });
 
@@ -226,17 +251,25 @@ export async function singleQuery(
     throw new Error(`API 错误 (${response.status}): ${errorText.slice(0, 300)}`);
   }
 
-  const result = (await response.json()) as {
-    content: Array<{ type: string; text?: string }>;
-    usage: { input_tokens: number; output_tokens: number };
-  };
+  const result = (await response.json()) as
+    | { content: Array<{ type: string; text?: string }>; usage: { input_tokens: number; output_tokens: number } }
+    | { choices: Array<{ message: { content: string } }>; usage: { prompt_tokens: number; completion_tokens: number } };
 
-  const text = result.content.filter(b => b.type === 'text').map(b => b.text || '').join('');
+  let text: string;
+  let tokens: number;
+
+  if ('choices' in result) {
+    text = result.choices.map(c => c.message.content).join('');
+    tokens = (result.usage?.prompt_tokens || 0) + (result.usage?.completion_tokens || 0);
+  } else {
+    text = result.content.filter(b => b.type === 'text').map(b => b.text || '').join('');
+    tokens = (result.usage?.input_tokens || 0) + (result.usage?.output_tokens || 0);
+  }
 
   return {
     result: text,
     cost: 0,
-    tokens: (result.usage?.input_tokens || 0) + (result.usage?.output_tokens || 0),
+    tokens,
     durationMs: Date.now() - startTime,
   };
 }
