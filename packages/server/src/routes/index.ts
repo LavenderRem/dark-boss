@@ -7,6 +7,8 @@ import taskRoutes from './tasks.js';
 import chatRoutes from './chat.js';
 import performanceRoutes from './performance.js';
 import fileRoutes from './files.js';
+import providerRoutes from './providers.js';
+import modelTierRoutes from './model-tiers.js';
 
 const router = Router();
 
@@ -18,5 +20,7 @@ router.use('/tasks', taskRoutes);
 router.use('/chat', chatRoutes);
 router.use('/performance', performanceRoutes);
 router.use('/files', fileRoutes);
+router.use('/providers', providerRoutes);
+router.use('/model-tiers', modelTierRoutes);
 
 export default router;

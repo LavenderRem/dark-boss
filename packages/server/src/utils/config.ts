@@ -5,6 +5,7 @@ export const config = {
   clientPort: parseInt(process.env.CLIENT_PORT || '5173', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   dataDir: process.env.DATA_DIR || '~/.dark-boss',
+  dbEncryptionKey: process.env.DB_ENCRYPTION_KEY || '',
 
   // Claude Code CLI 配置（支持智谱等兼容 API）
   anthropicAuthToken: process.env.ANTHROPIC_AUTH_TOKEN || '',

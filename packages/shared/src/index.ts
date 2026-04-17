@@ -4,4 +4,5 @@ export * from './types/workflow.js';
 export * from './types/task.js';
 export * from './types/event.js';
 export * from './types/performance.js';
+export * from './types/provider.js';
 export * from './constants/index.js';

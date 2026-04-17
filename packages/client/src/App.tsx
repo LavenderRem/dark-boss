@@ -8,6 +8,7 @@ import { KanbanPage } from './pages/kanban/index.js';
 import { ChatPage } from './pages/chat/index.js';
 import { MarketPage } from './pages/market/index.js';
 import { PerformancePage } from './pages/performance/index.js';
+import { ModelSettingsPage } from './pages/model-settings/index.js';
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/market" element={<MarketPage />} />
         <Route path="/performance" element={<PerformancePage />} />
+        <Route path="/model-settings" element={<ModelSettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

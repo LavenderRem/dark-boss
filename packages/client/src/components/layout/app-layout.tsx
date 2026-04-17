@@ -9,6 +9,7 @@ import {
   ShopOutlined,
   BarChartOutlined,
   CodeOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -27,6 +28,7 @@ const menuItems = [
   { key: '/chat', icon: <MessageOutlined />, label: '团队群聊' },
   { key: '/market', icon: <ShopOutlined />, label: '招聘市场' },
   { key: '/performance', icon: <BarChartOutlined />, label: '绩效考核' },
+  { key: '/model-settings', icon: <SettingOutlined />, label: '模型设置' },
 ];
 
 export function AppLayout() {

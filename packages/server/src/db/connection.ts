@@ -287,6 +287,29 @@ function createTables() {
   db.run(`CREATE INDEX IF NOT EXISTS idx_file_changes_agent ON agent_file_changes(agent_id)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_file_changes_created ON agent_file_changes(created_at)`);
 
+  // 模型提供商
+  db.run(`
+    CREATE TABLE IF NOT EXISTS model_providers (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      protocol TEXT NOT NULL CHECK(protocol IN ('openai', 'anthropic')),
+      base_url TEXT NOT NULL,
+      api_key TEXT NOT NULL DEFAULT '',
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL
+    )
+  `);
+
+  // 档位映射（固定 3 行：haiku / sonnet / opus）
+  db.run(`
+    CREATE TABLE IF NOT EXISTS model_tier_mapping (
+      tier TEXT PRIMARY KEY CHECK(tier IN ('haiku', 'sonnet', 'opus')),
+      provider_id TEXT REFERENCES model_providers(id),
+      model_name TEXT,
+      updated_at INTEGER NOT NULL
+    )
+  `);
+
   save();
 }
 
