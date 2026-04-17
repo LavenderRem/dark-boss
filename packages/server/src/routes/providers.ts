@@ -14,7 +14,7 @@ router.get('/', (_req, res) => {
     const masked = providers.map(p => ({
       ...p,
       is_active: !!p.is_active,
-      api_key: maskApiKey(p.api_key as string),
+      api_key: p.api_key ? maskApiKey(decrypt(p.api_key as string)) : '',
     }));
     res.json(masked);
   } catch (err) {
@@ -44,7 +44,7 @@ router.post('/', (req, res) => {
     res.status(201).json({
       ...provider,
       is_active: !!provider?.is_active,
-      api_key: maskApiKey(provider?.api_key as string),
+      api_key: provider?.api_key ? maskApiKey(decrypt(provider.api_key as string)) : '',
     });
   } catch (err) {
     console.error('创建提供商失败:', err);
@@ -78,7 +78,7 @@ router.patch('/:id', (req, res) => {
       return res.json({
         ...existing,
         is_active: !!existing.is_active,
-        api_key: maskApiKey(existing.api_key as string),
+        api_key: existing.api_key ? maskApiKey(decrypt(existing.api_key as string)) : '',
       });
     }
 
@@ -91,7 +91,7 @@ router.patch('/:id', (req, res) => {
     res.json({
       ...updated,
       is_active: !!updated?.is_active,
-      api_key: maskApiKey(updated?.api_key as string),
+      api_key: updated?.api_key ? maskApiKey(decrypt(updated.api_key as string)) : '',
     });
   } catch (err) {
     console.error('更新提供商失败:', err);
