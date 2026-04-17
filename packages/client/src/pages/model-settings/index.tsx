@@ -5,11 +5,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api/client.js';
 import type { ModelProvider, ModelTierMapping, ProviderProtocol } from '@dark-boss/shared';
 
-const MODEL_SUGGESTIONS: Record<string, string[]> = {
-  anthropic: ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-haiku-4-20250514', 'glm-4', 'glm-4-flash', 'glm-4-plus'],
-  openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'deepseek-chat', 'deepseek-coder', 'gpt-3.5-turbo'],
-};
-
 const TIER_INFO = {
   haiku: { label: 'Haiku', color: 'green', description: '快速/低成本' },
   sonnet: { label: 'Sonnet', color: 'blue', description: '平衡' },
@@ -185,29 +180,23 @@ export function ModelSettingsPage() {
       title: '模型',
       dataIndex: 'modelName',
       key: 'modelName',
-      render: (modelName: string | null, record: ModelTierMapping) => {
-        const provider = providers.find((p) => p.id === record.providerId);
-        const suggestions = provider ? MODEL_SUGGESTIONS[provider.protocol] || [] : [];
-
-        return (
-          <Select
-            style={{ width: '100%' }}
-            placeholder="选择或输入模型"
-            value={modelName}
-            onChange={(value) => updateTierMutation.mutate({
-              tier: record.tier,
-              providerId: record.providerId,
-              modelName: value,
-            })}
-            mode="tags"
-            maxTagCount={1}
-            options={suggestions.map((m) => ({ label: m, value: m }))}
-            showSearch
-            allowClear
-            filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
-          />
-        );
-      },
+      render: (modelName: string | null, record: ModelTierMapping) => (
+        <Input
+          style={{ width: '100%' }}
+          placeholder="输入模型名称"
+          defaultValue={modelName ?? ''}
+          onBlur={(e) => {
+            const value = e.target.value.trim();
+            if (value && value !== record.modelName) {
+              updateTierMutation.mutate({
+                tier: record.tier,
+                providerId: record.providerId,
+                modelName: value,
+              });
+            }
+          }}
+        />
+      ),
     },
   ];
 
