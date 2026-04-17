@@ -57,10 +57,13 @@ function resolveFromDb(tier: ModelTier): ResolvedModelConfig | null {
   );
   if (!provider || !provider.api_key) return null;
 
+  const apiKey = decrypt(provider.api_key);
+  if (!apiKey) return null;
+
   return {
     protocol: provider.protocol as ProviderProtocol,
     baseUrl: provider.base_url,
-    apiKey: decrypt(provider.api_key),
+    apiKey,
     modelName: tierRow.model_name,
   };
 }

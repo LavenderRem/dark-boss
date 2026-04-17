@@ -40,6 +40,11 @@ export function encrypt(plaintext: string): string {
   return [iv.toString('base64'), authTag.toString('base64'), encrypted.toString('base64')].join(':');
 }
 
+/** 检查字符串是否为可打印 ASCII（API Key 应只含合法字符） */
+function isPrintableAscii(str: string): boolean {
+  return /^[\x20-\x7E]+$/.test(str);
+}
+
 /** 解密 "iv:authTag:ciphertext" 格式密文，失败返回空字符串 */
 export function decrypt(ciphertext: string): string {
   if (!ciphertext) return '';
@@ -54,7 +59,13 @@ export function decrypt(ciphertext: string): string {
     const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(authTag);
     const decrypted = Buffer.concat([decipher.update(data), decipher.final()]);
-    return decrypted.toString('utf8');
+    const result = decrypted.toString('utf8');
+    // 解密结果必须是可打印 ASCII，否则视为密钥不匹配产生的乱码
+    if (!isPrintableAscii(result)) {
+      console.warn('[加密] 解密结果含非法字符，可能密钥已变更，请重新配置 API Key');
+      return '';
+    }
+    return result;
   } catch {
     console.warn('[加密] 解密失败，可能密钥已变更，请重新配置 API Key');
     return '';
