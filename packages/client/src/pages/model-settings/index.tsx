@@ -93,7 +93,7 @@ export function ModelSettingsPage() {
   });
 
   const updateTierMutation = useMutation({
-    mutationFn: ({ tier, ...data }: { tier: string; providerId?: string | null; modelName?: string | null }) =>
+    mutationFn: ({ tier, ...data }: { tier: string; providerId: string | null; modelName: string | null }) =>
       api.patch(`/model-tiers/${tier}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['model-tiers'] });
@@ -171,7 +171,11 @@ export function ModelSettingsPage() {
           style={{ width: '100%' }}
           placeholder="选择提供商"
           value={providerId}
-          onChange={(value) => updateTierMutation.mutate({ tier: record.tier, providerId: value })}
+          onChange={(value) => updateTierMutation.mutate({
+            tier: record.tier,
+            providerId: value ?? null,
+            modelName: record.modelName,
+          })}
           options={activeProviders.map((p) => ({ label: p.name, value: p.id }))}
           allowClear
         />
@@ -190,7 +194,11 @@ export function ModelSettingsPage() {
             style={{ width: '100%' }}
             placeholder="选择或输入模型"
             value={modelName}
-            onChange={(value) => updateTierMutation.mutate({ tier: record.tier, modelName: value })}
+            onChange={(value) => updateTierMutation.mutate({
+              tier: record.tier,
+              providerId: record.providerId,
+              modelName: value,
+            })}
             mode="tags"
             maxTagCount={1}
             options={suggestions.map((m) => ({ label: m, value: m }))}

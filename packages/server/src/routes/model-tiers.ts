@@ -29,25 +29,36 @@ router.patch('/:tier', (req, res) => {
 
     const body = req.body as UpdateTierMappingRequest;
 
+    // 读取当前映射，用于合并更新
+    const current = queryOne<{
+      tier: string; provider_id: string | null; model_name: string | null; updated_at: number;
+    }>('SELECT * FROM model_tier_mapping WHERE tier = ?', [tier]);
+    if (!current) return res.status(404).json({ error: '档位不存在' });
+
+    const providerId = body.providerId !== undefined ? body.providerId : current.provider_id;
+    const modelName = body.modelName !== undefined && body.modelName !== null
+      ? body.modelName
+      : current.model_name;
+
     // 如果指定了 provider_id，验证其存在且已配置 Key
-    if (body.providerId) {
+    if (providerId) {
       const provider = queryOne<{ id: string; api_key: string; is_active: number }>(
         'SELECT id, api_key, is_active FROM model_providers WHERE id = ?',
-        [body.providerId],
+        [providerId],
       );
       if (!provider) return res.status(404).json({ error: '提供商不存在' });
       if (!provider.api_key) return res.status(400).json({ error: '该提供商未配置 API Key' });
       if (!provider.is_active) return res.status(400).json({ error: '该提供商已禁用' });
     }
 
-    if (!body.modelName) {
+    if (!modelName) {
       return res.status(400).json({ error: '模型名称不能为空' });
     }
 
     const now = Date.now();
     run(
       'UPDATE model_tier_mapping SET provider_id = ?, model_name = ?, updated_at = ? WHERE tier = ?',
-      [body.providerId || null, body.modelName, now, tier],
+      [providerId || null, modelName, now, tier],
     );
 
     clearModelConfigCache();
