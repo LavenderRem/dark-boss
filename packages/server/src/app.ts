@@ -7,18 +7,7 @@ export function createApp() {
 
   // 中间件
   app.use((req, res, next) => {
-    const allowedOrigins = [
-      `http://localhost:${config.clientPort}`,
-      /\.zeabur\.app$/,
-      /\.zeabur\.app:\d+$/,
-    ];
-    const origin = req.headers.origin;
-    const isAllowed = allowedOrigins.some(o =>
-      typeof o === 'string' ? o === origin : o.test(origin || '')
-    );
-    if (isAllowed && origin) {
-      res.header('Access-Control-Allow-Origin', origin);
-    }
+    res.header('Access-Control-Allow-Origin', `http://localhost:${config.clientPort}`);
     res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     if (req.method === 'OPTIONS') return res.sendStatus(204);

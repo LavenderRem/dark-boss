@@ -8,7 +8,6 @@
     "dev:server": "pnpm --filter @dark-boss/server dev",
     "dev:client": "pnpm --filter @dark-boss/client dev",
     "build": "pnpm -r run build",
-    "typecheck": "pnpm -r run typecheck",
     "db:generate": "pnpm --filter @dark-boss/server db:generate",
     "db:migrate": "pnpm --filter @dark-boss/server db:migrate",
     "db:seed": "pnpm --filter @dark-boss/server db:seed"
