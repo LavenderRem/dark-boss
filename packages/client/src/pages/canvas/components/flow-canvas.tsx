@@ -1,4 +1,4 @@
-import { useCallback, useRef, useMemo, useEffect } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -12,6 +12,7 @@ import {
   type Edge,
   type ReactFlowInstance,
 } from '@xyflow/react';
+import { message } from 'antd';
 import '@xyflow/react/dist/style.css';
 
 import { AgentNode } from './agent-node.js';
@@ -19,6 +20,7 @@ import { InputNode, OutputNode, RouterNode, AggregatorNode } from './input-outpu
 import { DataEdge } from './data-edge.js';
 import { NodeSidebar } from './node-sidebar.js';
 import { FlowToolbar } from './flow-toolbar.js';
+import { NodeContextMenu } from './node-context-menu.js';
 import { useAutoLayout } from '../hooks/use-auto-layout.js';
 import { useWorkflowStore } from '../../../stores/workflow-store.js';
 import { AGENT_ROLES } from '@dark-boss/shared';
@@ -63,6 +65,8 @@ interface FlowCanvasProps {
 export function FlowCanvas({ onBackToList, onSave, onRun, onViewResult, onToggleLogPanel, isRunning }: FlowCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const reactFlowInstance = useRef<ReactFlowInstance<Node> | null>(null);
+
+  const [contextMenu, setContextMenu] = useState<{ nodeId: string; top: number; left: number } | null>(null);
 
   const { nodes, edges, onConnect, addNode, workflowName, isDirty, executingNodeId, activeEdgeIds, nodeResults } = useWorkflowStore();
   const autoLayout = useAutoLayout();
@@ -136,6 +140,15 @@ export function FlowCanvas({ onBackToList, onSave, onRun, onViewResult, onToggle
 
   const onInit = useCallback((instance: unknown) => {
     reactFlowInstance.current = instance as ReactFlowInstance<Node>;
+  }, []);
+
+  const onNodeContextMenu = useCallback((event: React.MouseEvent, node: Node) => {
+    event.preventDefault();
+    setContextMenu({ nodeId: node.id, top: event.clientY, left: event.clientX });
+  }, []);
+
+  const onPaneClick = useCallback(() => {
+    setContextMenu(null);
   }, []);
 
   // 监听工作流执行状态的 WebSocket 事件
@@ -240,18 +253,42 @@ export function FlowCanvas({ onBackToList, onSave, onRun, onViewResult, onToggle
         <NodeSidebar />
 
         {/* 画布 */}
-        <div ref={reactFlowWrapper} style={{ flex: 1 }}>
+        <div ref={reactFlowWrapper} style={{ flex: 1, position: 'relative' }}>
           <ReactFlow
             nodes={enrichedNodes as unknown as Node[]}
             edges={enrichedEdges as unknown as Edge[]}
             onNodesChange={(changes) => {
-              useWorkflowStore.getState().setNodes(applyNodeChanges(changes, nodes));
+              const store = useWorkflowStore.getState();
+              const removeNodeIds = changes
+                .filter(c => c.type === 'remove')
+                .map(c => c.id);
+
+              if (removeNodeIds.length > 0) {
+                const removeSet = new Set(removeNodeIds);
+                store.setNodes(store.nodes.filter(n => !removeSet.has(n.id)));
+                store.setEdges(store.edges.filter(e => !removeSet.has(e.source) && !removeSet.has(e.target)));
+                store.markDirty();
+                message.success(`已删除 ${removeNodeIds.length} 个节点`);
+                return;
+              }
+
+              store.setNodes(applyNodeChanges(changes, store.nodes));
+              if (changes.some(c => c.type === 'position' && c.dragging === false)) {
+                store.markDirty();
+              }
             }}
             onEdgesChange={(changes) => {
-              useWorkflowStore.getState().setEdges(applyEdgeChanges(changes, edges));
+              const store = useWorkflowStore.getState();
+              store.setEdges(applyEdgeChanges(changes, store.edges));
+              if (changes.some(c => c.type === 'remove')) {
+                store.markDirty();
+              }
             }}
             onConnect={onConnect}
             onInit={onInit}
+            deleteKeyCode={isRunning ? null : ['Backspace', 'Delete']}
+            onNodeContextMenu={onNodeContextMenu}
+            onPaneClick={onPaneClick}
             onDrop={onDrop}
             onDragOver={onDragOver}
             nodeTypes={nodeTypes}
@@ -280,6 +317,14 @@ export function FlowCanvas({ onBackToList, onSave, onRun, onViewResult, onToggle
               maskColor="rgba(0,0,0,0.7)"
             />
           </ReactFlow>
+          {contextMenu && (
+            <NodeContextMenu
+              nodeId={contextMenu.nodeId}
+              top={contextMenu.top}
+              left={contextMenu.left}
+              onClose={() => setContextMenu(null)}
+            />
+          )}
         </div>
       </div>
     </div>

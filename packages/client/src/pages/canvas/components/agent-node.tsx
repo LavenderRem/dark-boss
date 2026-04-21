@@ -3,6 +3,7 @@ import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { Badge, Tooltip } from 'antd';
 import { CheckCircleOutlined, LoadingOutlined } from '@ant-design/icons';
 import { AGENT_ROLES, AGENT_STATUS_COLORS, AGENT_STATUS_LABELS } from '@dark-boss/shared';
+import { NodeDeleteToolbar } from './node-delete-toolbar.js';
 
 // Agent 节点数据
 export interface AgentNodeData {
@@ -20,7 +21,7 @@ export interface AgentNodeData {
 
 type AgentNodeProps = NodeProps & { data: AgentNodeData };
 
-export const AgentNode = memo(function AgentNode({ data, selected }: AgentNodeProps) {
+export const AgentNode = memo(function AgentNode({ id, data, selected }: AgentNodeProps) {
   const roleInfo = AGENT_ROLES[(data.agentRole as keyof typeof AGENT_ROLES)] || AGENT_ROLES.custom;
   const statusColor = AGENT_STATUS_COLORS[data.agentStatus || 'offline'];
   const executing = data.isExecuting;
@@ -39,6 +40,8 @@ export const AgentNode = memo(function AgentNode({ data, selected }: AgentNodePr
       : 'none';
 
   return (
+    <>
+    <NodeDeleteToolbar nodeId={id} />
     <Tooltip
       title={
         <div>
@@ -126,5 +129,6 @@ export const AgentNode = memo(function AgentNode({ data, selected }: AgentNodePr
         <Handle type="source" position={Position.Bottom} style={{ background: '#1890ff', width: 8, height: 8 }} />
       </div>
     </Tooltip>
+    </>
   );
 });

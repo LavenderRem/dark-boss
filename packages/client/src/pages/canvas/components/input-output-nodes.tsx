@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { LoadingOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { NodeDeleteToolbar } from './node-delete-toolbar.js';
 
 // 通用节点执行状态样式
 function getNodeStatusStyle(isExecuting?: boolean, isCompleted?: boolean) {
@@ -18,9 +19,11 @@ export interface InputNodeData {
   result?: string | null;
 }
 
-export const InputNode = memo(function InputNode({ data, selected }: NodeProps & { data: InputNodeData }) {
+export const InputNode = memo(function InputNode({ id, data, selected }: NodeProps & { data: InputNodeData }) {
   const status = getNodeStatusStyle(data.isExecuting, data.isCompleted);
   return (
+    <>
+    <NodeDeleteToolbar nodeId={id} />
     <div style={{
       padding: '10px 16px',
       borderRadius: 8,
@@ -43,6 +46,7 @@ export const InputNode = memo(function InputNode({ data, selected }: NodeProps &
         </div>
       )}
     </div>
+    </>
   );
 });
 
@@ -54,9 +58,11 @@ export interface OutputNodeData {
   result?: string | null;
 }
 
-export const OutputNode = memo(function OutputNode({ data, selected }: NodeProps & { data: OutputNodeData }) {
+export const OutputNode = memo(function OutputNode({ id, data, selected }: NodeProps & { data: OutputNodeData }) {
   const status = getNodeStatusStyle(data.isExecuting, data.isCompleted);
   return (
+    <>
+    <NodeDeleteToolbar nodeId={id} />
     <div style={{
       padding: '10px 16px',
       borderRadius: 8,
@@ -90,6 +96,7 @@ export const OutputNode = memo(function OutputNode({ data, selected }: NodeProps
         </div>
       )}
     </div>
+    </>
   );
 });
 
@@ -101,9 +108,11 @@ export interface RouterNodeData {
   result?: string | null;
 }
 
-export const RouterNode = memo(function RouterNode({ data, selected }: NodeProps & { data: RouterNodeData }) {
+export const RouterNode = memo(function RouterNode({ id, data, selected }: NodeProps & { data: RouterNodeData }) {
   const status = getNodeStatusStyle(data.isExecuting, data.isCompleted);
   return (
+    <>
+    <NodeDeleteToolbar nodeId={id} />
     <div style={{
       padding: '10px 16px',
       borderRadius: 8,
@@ -123,6 +132,7 @@ export const RouterNode = memo(function RouterNode({ data, selected }: NodeProps
       <Handle type="source" position={Position.Bottom} id="a" style={{ background: '#1890ff', width: 8, height: 8, left: '30%' }} />
       <Handle type="source" position={Position.Bottom} id="b" style={{ background: '#1890ff', width: 8, height: 8, left: '70%' }} />
     </div>
+    </>
   );
 });
 
@@ -134,9 +144,11 @@ export interface AggregatorNodeData {
   result?: string | null;
 }
 
-export const AggregatorNode = memo(function AggregatorNode({ data, selected }: NodeProps & { data: AggregatorNodeData }) {
+export const AggregatorNode = memo(function AggregatorNode({ id, data, selected }: NodeProps & { data: AggregatorNodeData }) {
   const status = getNodeStatusStyle(data.isExecuting, data.isCompleted);
   return (
+    <>
+    <NodeDeleteToolbar nodeId={id} />
     <div style={{
       padding: '10px 16px',
       borderRadius: 8,
@@ -156,5 +168,6 @@ export const AggregatorNode = memo(function AggregatorNode({ data, selected }: N
       </div>
       <Handle type="source" position={Position.Bottom} style={{ background: '#8b5cf6', width: 8, height: 8 }} />
     </div>
+    </>
   );
 });
