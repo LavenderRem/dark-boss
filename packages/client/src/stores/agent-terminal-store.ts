@@ -9,6 +9,8 @@ export interface TerminalLine {
   text: string;
   channel: string;
   time: number;
+  toolName?: string;
+  toolInput?: string;
 }
 
 // 单个 Agent 的终端状态

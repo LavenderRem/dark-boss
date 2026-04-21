@@ -1,41 +1,28 @@
 /**
  * Agent 终端组件
- * 显示 Agent 进程的实时输出，支持向 Agent 发送消息
- * 状态保存在全局 Store 中，切换员工时不会丢失
+ * 使用 xterm.js 交互式终端，支持终端内直接输入
  */
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Input, Button, Space, Tag, Tooltip } from 'antd';
+import { useCallback, useRef, useEffect } from 'react';
+import { Button, Space, Tag, Tooltip } from 'antd';
 import {
   PlayCircleOutlined,
   PauseCircleOutlined,
   ReloadOutlined,
-  SendOutlined,
   ClearOutlined,
 } from '@ant-design/icons';
 import { useWsMessage, useWsSend } from '../../hooks/use-ws.js';
 import { useAgentTerminalStore } from '../../stores/agent-terminal-store.js';
+import { XtermTerminal, type XtermTerminalHandle } from './xterm-terminal.js';
 import type { AgentProcessOutputPayload, AgentProcessStatusPayload } from '@dark-boss/shared';
 
-// 稳定引用，避免 Zustand selector 每次返回新对象导致无限渲染
-const EMPTY_LINES: Array<{ text: string; channel: string; time: number }> = [];
+const EMPTY_LINES: Array<{ text: string; channel: string; time: number; toolName?: string; toolInput?: string }> = [];
 
 interface AgentTerminalProps {
   agentId: string;
   agentName: string;
-  /** 是否显示控制按钮（启动/停止/重启） */
   showControls?: boolean;
-  /** 终端高度 */
   height?: number | string;
 }
-
-// 输出通道颜色
-const CHANNEL_COLORS: Record<string, string> = {
-  stdout: '#e8e8e8',
-  stderr: '#ff6b6b',
-  stdin: '#69b7ff',
-  tool: '#ffd43b',
-  tool_result: '#8ce99a',
-};
 
 export function AgentTerminal({
   agentId,
@@ -43,21 +30,17 @@ export function AgentTerminal({
   showControls = true,
   height = 400,
 }: AgentTerminalProps) {
-  const [inputValue, setInputValue] = useState('');
-  const [isAtBottom, setIsAtBottom] = useState(true);
-  const terminalRef = useRef<HTMLDivElement>(null);
-
   const wsSend = useWsSend();
+  const xtermRef = useRef<XtermTerminalHandle>(null);
+  const prevStatusRef = useRef('stopped');
 
-  // 从全局 Store 获取当前 Agent 的终端状态
-  // 注意：使用稳定引用 EMPTY_LINES，不能用 `?? []`（每次创建新数组导致无限渲染）
   const lines = useAgentTerminalStore(s => s.terminals[agentId]?.lines ?? EMPTY_LINES);
   const processStatus = useAgentTerminalStore(s => s.terminals[agentId]?.processStatus ?? 'stopped');
   const appendLine = useAgentTerminalStore(s => s.appendLine);
   const setProcessStatus = useAgentTerminalStore(s => s.setProcessStatus);
   const clearLines = useAgentTerminalStore(s => s.clearLines);
 
-  // 订阅 WebSocket 消息 —— 接收所有 agent 的消息，写入对应 store
+  // 订阅 WebSocket 消息
   useWsMessage(useCallback((msg) => {
     if (msg.type === 'agent:process_output') {
       const payload = msg.payload as AgentProcessOutputPayload;
@@ -65,6 +48,8 @@ export function AgentTerminal({
         text: payload.text,
         channel: payload.channel || 'stdout',
         time: Date.now(),
+        toolName: payload.toolName,
+        toolInput: payload.toolInput,
       });
     }
 
@@ -74,25 +59,29 @@ export function AgentTerminal({
     }
   }, [appendLine, setProcessStatus]));
 
-  // 自动滚动到底部
+  // Agent 从 running → idle 时写新提示符
   useEffect(() => {
-    if (isAtBottom && terminalRef.current) {
-      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    if (prevStatusRef.current === 'running' && processStatus === 'idle') {
+      xtermRef.current?.writeSeparator('完成');
+      xtermRef.current?.writePrompt();
     }
-  }, [lines, isAtBottom]);
+    // stopped/error 状态也恢复提示符，防止卡住
+    if ((processStatus === 'stopped' || processStatus === 'error') && prevStatusRef.current !== processStatus) {
+      xtermRef.current?.writePrompt();
+    }
+    prevStatusRef.current = processStatus;
+  }, [processStatus]);
 
-  // 检测是否在底部
-  const handleScroll = () => {
-    if (!terminalRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = terminalRef.current;
-    setIsAtBottom(scrollHeight - scrollTop - clientHeight < 50);
-  };
-
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
-    wsSend('agent:send_message', { agentId, message: inputValue.trim() });
-    setInputValue('');
-  };
+  const handleTerminalSubmit = useCallback((message: string) => {
+    wsSend('agent:send_message', { agentId, message });
+    // 如果 agent 未启动，500ms 后恢复提示符
+    setTimeout(() => {
+      const currentStatus = useAgentTerminalStore.getState().terminals[agentId]?.processStatus;
+      if (currentStatus === 'stopped' || !currentStatus) {
+        xtermRef.current?.writePrompt();
+      }
+    }, 500);
+  }, [wsSend, agentId]);
 
   const handleSpawn = () => wsSend('agent:spawn', { agentId });
   const handleStop = () => wsSend('agent:stop', { agentId });
@@ -117,6 +106,8 @@ export function AgentTerminal({
         background: '#1a1a2e',
         borderBottom: '1px solid #303030',
         borderRadius: '6px 6px 0 0',
+        height: 38,
+        flexShrink: 0,
       }}>
         <Space size={8}>
           <span style={{ color: '#bfbfbf', fontSize: 13, fontWeight: 500 }}>
@@ -129,6 +120,9 @@ export function AgentTerminal({
              processStatus === 'stopping' ? '停止中' :
              processStatus === 'error' ? '出错' : '已停止'}
           </Tag>
+          <span style={{ color: '#595959', fontSize: 11 }}>
+            Ctrl+F 搜索 · Esc 取消输入
+          </span>
         </Space>
         {showControls && (
           <Space size={4}>
@@ -175,65 +169,15 @@ export function AgentTerminal({
         )}
       </div>
 
-      {/* 终端输出区域 */}
-      <div
-        ref={terminalRef}
-        onScroll={handleScroll}
-        style={{
-          flex: 1,
-          overflow: 'auto',
-          padding: '8px 12px',
-          background: '#0d1117',
-          fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-          fontSize: 13,
-          lineHeight: 1.6,
-          minHeight: 200,
-        }}
-      >
-        {lines.length === 0 ? (
-          <div style={{ color: '#595959', fontStyle: 'italic' }}>
-            等待 Agent 输出...点击「启动」按钮初始化会话，然后发送消息
-          </div>
-        ) : (
-          lines.map((line, i) => (
-            <div key={i} style={{ color: CHANNEL_COLORS[line.channel] || '#e8e8e8' }}>
-              {line.text}
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* 输入框 */}
-      <div style={{
-        display: 'flex',
-        gap: 8,
-        padding: '8px 12px',
-        background: '#1a1a2e',
-        borderTop: '1px solid #303030',
-        borderRadius: '0 0 6px 6px',
-      }}>
-        <Input
-          value={inputValue}
-          onChange={e => setInputValue(e.target.value)}
-          onPressEnter={handleSend}
-          placeholder={`向 ${agentName} 发送消息...`}
-          disabled={processStatus !== 'running' && processStatus !== 'idle'}
-          style={{
-            background: '#0d1117',
-            borderColor: '#303030',
-            color: '#e8e8e8',
-            fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-            fontSize: 13,
-          }}
+      {/* xterm.js 交互式终端 */}
+      <div style={{ flex: 1, overflow: 'hidden' }}>
+        <XtermTerminal
+          ref={xtermRef}
+          lines={lines}
+          height="100%"
+          agentName={agentName}
+          onSubmit={handleTerminalSubmit}
         />
-        <Button
-          icon={<SendOutlined />}
-          onClick={handleSend}
-          disabled={!inputValue.trim() || (processStatus !== 'running' && processStatus !== 'idle')}
-          type="primary"
-        >
-          发送
-        </Button>
       </div>
     </div>
   );

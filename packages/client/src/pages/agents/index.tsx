@@ -25,6 +25,7 @@ export function AgentsPage() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [activeTab, setActiveTab] = useState('info');
   const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
 
@@ -290,12 +291,12 @@ export function AgentsPage() {
           </span>
         ) : '员工详情'}
         open={detailModalOpen}
-        onCancel={() => { setDetailModalOpen(false); setSelectedAgent(null); }}
+        onCancel={() => { setDetailModalOpen(false); setSelectedAgent(null); setActiveTab('info'); }}
         footer={null}
-        width={600}
+        width={activeTab === 'terminal' ? 960 : 600}
       >
         {selectedAgent && (
-          <Tabs items={[
+          <Tabs activeKey={activeTab} onChange={setActiveTab} items={[
             {
               key: 'info',
               label: '基本信息',

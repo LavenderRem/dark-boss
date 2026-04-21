@@ -25,6 +25,7 @@ export default defineConfig({
           'vendor-flow': ['@xyflow/react'],
           'vendor-charts': ['recharts'],
           'vendor-dnd': ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+          'vendor-xterm': ['@xterm/xterm', '@xterm/addon-fit', '@xterm/addon-search', '@xterm/addon-web-links'],
         },
       },
     },
