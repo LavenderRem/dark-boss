@@ -1,9 +1,19 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Badge, Tooltip } from 'antd';
+import { Badge, Popover, Tag, Tooltip } from 'antd';
 import { CheckCircleOutlined, LoadingOutlined } from '@ant-design/icons';
 import { AGENT_ROLES, AGENT_STATUS_COLORS, AGENT_STATUS_LABELS } from '@dark-boss/shared';
+import type { Task, TaskStatus } from '@dark-boss/shared';
 import { NodeDeleteToolbar } from './node-delete-toolbar.js';
+
+const TASK_STATUS_CONFIG: Record<TaskStatus, { label: string; color: string }> = {
+  backlog: { label: '待规划', color: 'default' },
+  todo: { label: '待办', color: 'blue' },
+  in_progress: { label: '进行中', color: 'gold' },
+  review: { label: '审核中', color: 'purple' },
+  done: { label: '已完成', color: 'green' },
+  cancelled: { label: '已取消', color: 'red' },
+};
 
 // Agent 节点数据
 export interface AgentNodeData {
@@ -17,31 +27,104 @@ export interface AgentNodeData {
   isExecuting?: boolean;
   isCompleted?: boolean;
   result?: string | null;
+  relatedTasks?: Task[];
 }
 
 type AgentNodeProps = NodeProps & { data: AgentNodeData };
 
 export const AgentNode = memo(function AgentNode({ id, data, selected }: AgentNodeProps) {
+  const [tasksOpen, setTasksOpen] = useState(false);
   const roleInfo = AGENT_ROLES[(data.agentRole as keyof typeof AGENT_ROLES)] || AGENT_ROLES.custom;
   const statusColor = AGENT_STATUS_COLORS[data.agentStatus || 'offline'];
   const executing = data.isExecuting;
   const completed = data.isCompleted;
+  const relatedTasks = data.relatedTasks || [];
 
-  // 执行中：蓝色脉冲边框；已完成：绿色边框；默认：灰色
+  // 根据关联任务状态确定节点边框颜色
+  const latestTask = relatedTasks.length > 0 ? relatedTasks[relatedTasks.length - 1] : null;
+  const taskBorderColor = latestTask?.status === 'done'
+    ? '#52c41a'
+    : latestTask?.status === 'in_progress'
+      ? '#1890ff'
+      : latestTask?.status === 'review'
+        ? '#722ed1'
+        : null;
+
   const borderColor = executing
     ? '#1890ff'
     : completed
       ? '#52c41a'
-      : selected ? '#1890ff' : '#434343';
+      : taskBorderColor
+        ? taskBorderColor
+        : selected ? '#1890ff' : '#434343';
   const glowShadow = executing
     ? '0 0 16px #1890ff66, 0 0 32px #1890ff33'
     : completed
       ? '0 0 8px #52c41a33'
       : 'none';
 
+  // 任务数量徽标
+  const taskBadge = relatedTasks.length > 0 ? (
+    <Popover
+      open={tasksOpen}
+      onOpenChange={setTasksOpen}
+      trigger="click"
+      placement="right"
+      title={<span style={{ fontSize: 13 }}>关联看板任务 ({relatedTasks.length})</span>}
+      content={
+        <div style={{ maxWidth: 280 }}>
+          {relatedTasks.map(task => {
+            const cfg = TASK_STATUS_CONFIG[task.status] || TASK_STATUS_CONFIG.todo;
+            return (
+              <div key={task.id} style={{
+                padding: '6px 0',
+                borderBottom: '1px solid #303030',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}>
+                <span style={{ fontSize: 12, color: '#d9d9d9', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {task.title}
+                </span>
+                <Tag color={cfg.color} style={{ fontSize: 10, margin: 0, marginLeft: 8, lineHeight: '16px', padding: '0 4px' }}>
+                  {cfg.label}
+                </Tag>
+              </div>
+            );
+          })}
+        </div>
+      }
+    >
+      <div
+        onClick={(e) => { e.stopPropagation(); setTasksOpen(!tasksOpen); }}
+        style={{
+          position: 'absolute',
+          top: -6,
+          right: -6,
+          background: '#1890ff',
+          borderRadius: '50%',
+          width: 20,
+          height: 20,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          zIndex: 10,
+          fontSize: 10,
+          color: '#fff',
+          fontWeight: 600,
+          boxShadow: '0 0 4px #1890ff88',
+        }}
+      >
+        {relatedTasks.length}
+      </div>
+    </Popover>
+  ) : null;
+
   return (
     <>
     <NodeDeleteToolbar nodeId={id} />
+    {taskBadge}
     <Tooltip
       title={
         <div>

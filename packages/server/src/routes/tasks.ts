@@ -5,6 +5,20 @@ import { v4 as uuid } from 'uuid';
 
 const router = Router();
 
+// 按工作流查询关联任务（放在 /:id 之前避免路由冲突）
+router.get('/by-workflow/:workflowId', (req, res) => {
+  try {
+    const tasks = queryAll(
+      'SELECT * FROM tasks WHERE workflow_id = ? ORDER BY created_at ASC',
+      [req.params.workflowId]
+    );
+    res.json(tasks);
+  } catch (err) {
+    console.error('查询工作流任务失败:', err);
+    res.status(500).json({ error: '查询工作流任务失败' });
+  }
+});
+
 // 列出任务（支持按状态和部门筛选）
 router.get('/', (req, res) => {
   try {
@@ -88,6 +102,7 @@ router.patch('/:id', (req, res) => {
     if (req.body.status !== undefined) { sets.push('status = ?'); vals.push(req.body.status); }
     if (req.body.priority !== undefined) { sets.push('priority = ?'); vals.push(req.body.priority); }
     if (req.body.assignedAgentId !== undefined) { sets.push('assigned_agent_id = ?'); vals.push(req.body.assignedAgentId); }
+    if (req.body.workflowNodeId !== undefined) { sets.push('workflow_node_id = ?'); vals.push(req.body.workflowNodeId); }
     if (req.body.dueAt !== undefined) { sets.push('due_at = ?'); vals.push(req.body.dueAt); }
 
     sets.push('updated_at = ?');

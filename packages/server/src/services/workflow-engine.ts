@@ -29,6 +29,7 @@ interface ExecutionContext {
   workflowInput: string;
   finalOutputs: Map<string, string>;
   nodeStartTimes: Map<string, number>;
+  nodeTaskIds: Map<string, string>;
 }
 
 // 拓扑排序：找出可执行的节点顺序
@@ -195,10 +196,39 @@ export async function executeWorkflow(workflowId: string, input: string = ''): P
     workflowInput: input,
     finalOutputs: new Map(),
     nodeStartTimes: new Map(),
+    nodeTaskIds: new Map(),
   };
 
   const layers = topologicalSort(nodes, edges);
   console.log(`[工作流引擎] 工作流 ${workflowId} 开始执行 (executionId=${executionId})，${layers.length} 层，${nodes.length} 个节点`);
+
+  // 为所有 Agent 节点创建看板任务（todo 状态）
+  const agentNodes = nodes.filter(n => n.type === 'agent');
+  for (const node of agentNodes) {
+    const taskId = uuid();
+    const agentName = node.data?.label || 'Agent';
+    run(
+      `INSERT INTO tasks (id, title, description, status, priority, assigned_agent_id, department_id, workflow_id, workflow_node_id, estimated_minutes, column_order, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        taskId,
+        `[工作流] ${agentName}`,
+        `工作流执行任务 - 节点: ${agentName}`,
+        'todo',
+        'medium',
+        node.data?.agentId || null,
+        null,
+        workflowId,
+        node.id,
+        null,
+        Date.now(),
+        Date.now(),
+        Date.now(),
+      ]
+    );
+    ctx.nodeTaskIds.set(node.id, taskId);
+  }
+  broadcast('task:updated', { workflowId, action: 'workflow_started', taskCount: agentNodes.length });
 
   try {
     for (let layerIdx = 0; layerIdx < layers.length; layerIdx++) {
@@ -268,6 +298,13 @@ async function executeNode(ctx: ExecutionContext, nodeId: string): Promise<void>
   broadcast('workflow:node_start', { workflowId: ctx.workflowId, executionId: ctx.executionId, nodeId, nodeType: node.type, agentId: node.data?.agentId });
   console.log(`[工作流引擎] 节点 ${nodeId} (${node.data?.label || node.type}) 开始执行`);
 
+  // 更新关联看板任务状态为 in_progress
+  const taskId = ctx.nodeTaskIds.get(nodeId);
+  if (taskId) {
+    run("UPDATE tasks SET status = 'in_progress', started_at = ?, updated_at = ? WHERE id = ?", [startedAt, Date.now(), taskId]);
+    broadcast('task:updated', { taskId, action: 'started' });
+  }
+
   let output: string;
   let tokensUsed: number | undefined;
   let cost: number | undefined;
@@ -326,6 +363,15 @@ async function executeNode(ctx: ExecutionContext, nodeId: string): Promise<void>
       cost,
     });
 
+    // 更新关联看板任务状态为 done
+    if (taskId) {
+      run(
+        "UPDATE tasks SET status = 'done', result = ?, completed_at = ?, actual_minutes = ?, updated_at = ? WHERE id = ?",
+        [truncate(output, 4000), completedAt, Math.round((completedAt - startedAt) / 60000), completedAt, taskId]
+      );
+      broadcast('task:updated', { taskId, action: 'completed' });
+    }
+
     // 标记相关边为活跃
     const activeEdges = ctx.edges
       .filter(e => e.source === nodeId)
@@ -350,6 +396,15 @@ async function executeNode(ctx: ExecutionContext, nodeId: string): Promise<void>
       agentId: node.data?.agentId,
       result: `执行失败: ${errorMsg}`,
     });
+
+    // 更新关联看板任务状态为 review（需人工干预）
+    if (taskId) {
+      run(
+        "UPDATE tasks SET status = 'review', result = ?, updated_at = ? WHERE id = ?",
+        [`执行失败: ${errorMsg}`, Date.now(), taskId]
+      );
+      broadcast('task:updated', { taskId, action: 'failed' });
+    }
 
     throw err;
   }

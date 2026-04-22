@@ -14,6 +14,7 @@ import {
 } from '@xyflow/react';
 import { message } from 'antd';
 import '@xyflow/react/dist/style.css';
+import { useQuery } from '@tanstack/react-query';
 
 import { AgentNode } from './agent-node.js';
 import { InputNode, OutputNode, RouterNode, AggregatorNode } from './input-output-nodes.js';
@@ -23,7 +24,9 @@ import { FlowToolbar } from './flow-toolbar.js';
 import { NodeContextMenu } from './node-context-menu.js';
 import { useAutoLayout } from '../hooks/use-auto-layout.js';
 import { useWorkflowStore } from '../../../stores/workflow-store.js';
+import { api } from '../../../api/client.js';
 import { AGENT_ROLES } from '@dark-boss/shared';
+import type { Task } from '@dark-boss/shared';
 
 // 注入脉冲动画 CSS（仅注入一次）
 if (typeof document !== 'undefined' && !document.getElementById('workflow-pulse-style')) {
@@ -68,8 +71,33 @@ export function FlowCanvas({ onBackToList, onSave, onRun, onViewResult, onToggle
 
   const [contextMenu, setContextMenu] = useState<{ nodeId: string; top: number; left: number } | null>(null);
 
-  const { nodes, edges, onConnect, addNode, workflowName, isDirty, executingNodeId, activeEdgeIds, nodeResults } = useWorkflowStore();
+  const { nodes, edges, onConnect, addNode, workflowName, isDirty, executingNodeId, activeEdgeIds, nodeResults, workflowId } = useWorkflowStore();
   const autoLayout = useAutoLayout();
+
+  // 查询当前工作流关联的看板任务
+  const { data: workflowTasks = [] } = useQuery<Task[]>({
+    queryKey: ['workflow-tasks', workflowId],
+    queryFn: async () => {
+      if (!workflowId) return [];
+      return api.get<Task[]>(`/tasks/by-workflow/${workflowId}`);
+    },
+    enabled: !!workflowId,
+    refetchInterval: isRunning ? 3000 : false,
+  });
+
+  // 按节点 ID 索引任务
+  const tasksByNodeId = useMemo(() => {
+    const map = new Map<string, Task[]>();
+    for (const task of workflowTasks) {
+      const nodeId = task.workflowNodeId;
+      if (nodeId) {
+        const existing = map.get(nodeId) || [];
+        existing.push(task);
+        map.set(nodeId, existing);
+      }
+    }
+    return map;
+  }, [workflowTasks]);
 
   // 拖拽放置
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -208,7 +236,7 @@ export function FlowCanvas({ onBackToList, onSave, onRun, onViewResult, onToggle
     return () => window.removeEventListener('ws:message', handler);
   }, []);
 
-  // 注入节点执行状态到 node data（让节点组件感知到 isExecuting/isCompleted）
+  // 注入节点执行状态和关联任务到 node data
   const enrichedNodes = useMemo(() => {
     return nodes.map(n => ({
       ...n,
@@ -217,9 +245,10 @@ export function FlowCanvas({ onBackToList, onSave, onRun, onViewResult, onToggle
         isExecuting: executingNodeId === n.id,
         isCompleted: nodeResults.has(n.id),
         result: nodeResults.get(n.id) || null,
+        relatedTasks: tasksByNodeId.get(n.id) || [],
       },
     }));
-  }, [nodes, executingNodeId, nodeResults]);
+  }, [nodes, executingNodeId, nodeResults, tasksByNodeId]);
 
   // 注入边的激活状态
   const enrichedEdges = useMemo(() => {

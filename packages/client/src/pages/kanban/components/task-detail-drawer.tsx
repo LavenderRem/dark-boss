@@ -1,4 +1,5 @@
-import { Drawer, Descriptions, Tag, Button, Space, Typography, Divider } from 'antd';
+import { useState } from 'react';
+import { Drawer, Descriptions, Tag, Button, Space, Typography, Divider, Modal, Input, message } from 'antd';
 import {
   EditOutlined,
   DeleteOutlined,
@@ -6,10 +7,14 @@ import {
   CheckCircleOutlined,
   CalendarOutlined,
   FieldTimeOutlined,
+  ApartmentOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import type { Task, TaskStatus, TaskPriority, Agent } from '@dark-boss/shared';
 import { AGENT_ROLES } from '@dark-boss/shared';
 import { MarkdownRenderer } from '../../../components/chat/markdown-renderer.js';
+import { api } from '../../../api/client.js';
 
 const { Text } = Typography;
 
@@ -70,6 +75,11 @@ export function TaskDetailDrawer({
   onExecute,
   isExecuting,
 }: TaskDetailDrawerProps) {
+  const navigate = useNavigate();
+  const [runWorkflowModalOpen, setRunWorkflowModalOpen] = useState(false);
+  const [runInput, setRunInput] = useState('');
+  const [isRunningWorkflow, setIsRunningWorkflow] = useState(false);
+
   if (!task) return null;
 
   const assignee = agents.find(a => a.id === task.assignedAgentId);
@@ -79,12 +89,33 @@ export function TaskDetailDrawer({
   const priorityCfg = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
   const roleInfo = assignee ? (AGENT_ROLES[assignee.role] || AGENT_ROLES.custom) : null;
 
-  // 是否可执行：有指派人且状态为 todo 或 in_progress
   const canExecute = task.assignedAgentId && (task.status === 'todo' || task.status === 'in_progress');
 
-  // 是否逾期
   const isOverdue = task.dueAt && task.status !== 'done' && task.status !== 'cancelled'
     && new Date(task.dueAt).getTime() < Date.now();
+
+  const handleNavigateToWorkflow = () => {
+    if (task.workflowId) {
+      onClose();
+      navigate(`/canvas?workflowId=${task.workflowId}`);
+    }
+  };
+
+  const handleRunWorkflow = async () => {
+    if (!task.workflowId) return;
+    setIsRunningWorkflow(true);
+    try {
+      await api.post(`/workflows/${task.workflowId}/execute`, { input: runInput });
+      message.success('工作流开始执行');
+      setRunWorkflowModalOpen(false);
+      setRunInput('');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '执行失败';
+      message.error(msg);
+    } finally {
+      setIsRunningWorkflow(false);
+    }
+  };
 
   return (
     <Drawer
@@ -104,6 +135,24 @@ export function TaskDetailDrawer({
       }}
       extra={
         <Space>
+          {task.workflowId && (
+            <Button
+              icon={<ApartmentOutlined />}
+              size="small"
+              onClick={handleNavigateToWorkflow}
+            >
+              查看工作流
+            </Button>
+          )}
+          {task.workflowId && (
+            <Button
+              icon={<ThunderboltOutlined />}
+              size="small"
+              onClick={() => { setRunInput(''); setRunWorkflowModalOpen(true); }}
+            >
+              执行工作流
+            </Button>
+          )}
           {canExecute && (
             <Button
               type="primary"
@@ -154,7 +203,14 @@ export function TaskDetailDrawer({
           <Descriptions.Item label="部门">{department.name}</Descriptions.Item>
         )}
         {workflow && (
-          <Descriptions.Item label="关联工作流">{workflow.name}</Descriptions.Item>
+          <Descriptions.Item label="关联工作流">
+            <a
+              onClick={handleNavigateToWorkflow}
+              style={{ color: '#1890ff', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              {workflow.name}
+            </a>
+          </Descriptions.Item>
         )}
       </Descriptions>
 
@@ -255,6 +311,30 @@ export function TaskDetailDrawer({
           </div>
         </>
       )}
+
+      {/* 执行关联工作流弹窗 */}
+      <Modal
+        title="执行关联工作流"
+        open={runWorkflowModalOpen}
+        onOk={handleRunWorkflow}
+        onCancel={() => { setRunWorkflowModalOpen(false); setRunInput(''); }}
+        confirmLoading={isRunningWorkflow}
+        okText="开始执行"
+        cancelText="取消"
+      >
+        <div style={{ marginBottom: 12 }}>
+          <Text style={{ color: '#8c8c8c' }}>
+            输入内容将作为工作流的初始输入。
+          </Text>
+        </div>
+        <Input.TextArea
+          value={runInput}
+          onChange={e => setRunInput(e.target.value)}
+          placeholder="输入工作流的初始内容（可选）..."
+          autoSize={{ minRows: 3, maxRows: 8 }}
+          style={{ background: '#2a2a2a', color: '#e8e8e8', borderColor: '#303030' }}
+        />
+      </Modal>
     </Drawer>
   );
 }

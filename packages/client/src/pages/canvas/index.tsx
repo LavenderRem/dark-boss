@@ -3,6 +3,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { Modal, Input, Form, Card, Typography, Button, Space, message, Empty, Skeleton, Tag } from 'antd';
 import { PlusOutlined, DeleteOutlined, PlayCircleOutlined, FileTextOutlined, CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined, EyeOutlined, CopyOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { FlowCanvas } from './components/flow-canvas.js';
 import { ExecutionLogPanel } from './components/execution-log-panel.js';
 import { useWorkflowStore } from '../../stores/workflow-store.js';
@@ -34,6 +35,7 @@ export function CanvasPage() {
   const [runInput, setRunInput] = useState('');
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { workflowId, workflowResult, isRunning, setRunning, setWorkflowResult, toggleLogPanel } = useWorkflowStore();
 
   const { data: workflows = [], isLoading } = useQuery({
@@ -84,6 +86,15 @@ export function CanvasPage() {
       setShowList(true);
     }
   }, [workflowId, workflows.length, isLoading]);
+
+  // 支持从 URL 参数加载工作流（如看板跳转）
+  useEffect(() => {
+    const urlWorkflowId = searchParams.get('workflowId');
+    if (urlWorkflowId && urlWorkflowId !== workflowId) {
+      loadWorkflow(urlWorkflowId);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams]);
 
   // 监听 WebSocket 工作流执行完成事件
   useEffect(() => {
