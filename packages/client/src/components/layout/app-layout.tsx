@@ -51,17 +51,20 @@ export function AppLayout() {
         width={200}
         collapsible
         breakpoint="lg"
-        style={{ background: '#1a1a2e' }}
+        style={{ background: '#050507', borderRight: '1px solid #3d3a39' }}
       >
         <div style={{
           height: 48,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#1890ff',
+          color: '#00d992',
           fontSize: 16,
           fontWeight: 700,
-          borderBottom: '1px solid #303030',
+          fontFamily: 'var(--font-heading)',
+          letterSpacing: -0.5,
+          borderBottom: '1px solid #3d3a39',
+          animation: 'greenPulse 3s ease-in-out infinite',
         }}>
           暗黑老板
         </div>
@@ -78,16 +81,16 @@ export function AppLayout() {
         <Header style={{
           height: 48,
           padding: '0 24px',
-          background: '#1f1f1f',
+          background: '#101010',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderBottom: '1px solid #303030',
+          borderBottom: '1px solid #3d3a39',
         }}>
-          <span style={{ color: '#8c8c8c', fontSize: 13 }}>
+          <span style={{ color: '#8b949e', fontSize: 13 }}>
             AI Agent 编排平台
           </span>
-          <div style={{ display: 'flex', gap: 16, color: '#8c8c8c', fontSize: 13, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 16, color: '#8b949e', fontSize: 13, alignItems: 'center' }}>
             <span>员工: {agents.length}</span>
             <span>在线: {onlineCount}</span>
             <span>Token: {totalTokens > 0 ? `${(totalTokens / 1000).toFixed(1)}k` : '0'}</span>
@@ -99,7 +102,7 @@ export function AppLayout() {
         <Content style={{
           overflow: 'auto',
           padding: 16,
-          background: '#141414',
+          background: '#050507',
         }}>
           <Outlet />
         </Content>

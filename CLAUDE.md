@@ -105,6 +105,36 @@ packages/
 - 数据库文件: `~/.dark-boss/data.db` (sql.js WASM SQLite)
 - 首次启动自动初始化默认数据 (4 个部门 + 7 个模板)
 
+## 前端 UI 设计规范（强制）
+
+**所有涉及前端 UI 的代码（组件、样式、页面）必须遵循 `DESIGN.md` 中定义的 VoltAgent 设计系统。**
+
+### 快速颜色参考（写代码时直接使用）
+- 主色调: `#00d992` (Emerald Signal Green) — 用于强调、活跃状态、CTA
+- 按钮文字: `#2fd6a1` (VoltAgent Mint)
+- 页面背景: `#050507` (Abyss Black)
+- 卡片/容器: `#101010` (Carbon Surface)
+- 输入框背景: `#0a0a0c`
+- 边框: `#3d3a39` (Warm Charcoal)
+- 强调边框: `#00d992`
+- 主要文字: `#f2f2f2` (Snow White)
+- 次要文字: `#b8b3b0` (Warm Parchment)
+- 辅助文字: `#8b949e` (Steel Slate)
+- 成功: `#00d992` / 警告: `#ffba00` / 危险: `#fb565b` / 信息: `#4cb3d4`
+
+### 强制规则
+1. **禁止使用蓝色** — 不允许 `#1890ff` 或任何蓝色作为主色
+2. **使用设计令牌** — 优先使用 `var(--color-*)` CSS 变量（定义在 `styles/design-tokens.css`）
+3. **边框驱动深度** — 用边框颜色和粗细表达层级，而非阴影
+4. **字体规范** — 标题用 system-ui，正文用 Inter，代码用 JetBrains Mono
+5. **圆角规范** — 小元素 4px，按钮 6px，卡片 8px，标签 9999px
+6. **详细规范见 `DESIGN.md`** — 涉及 UI 变更时必须先读 DESIGN.md
+
+### Ant Design 主题
+- 已在 `main.tsx` 中配置，基于 `theme.darkAlgorithm`
+- 组件级 token 在 `themeConfig.components` 中定义
+- 新增 Ant Design 组件时，检查是否需要补充组件级 token
+
 ## 默认 Agent 模板
 
 | 模板 | 角色 | 说明 |

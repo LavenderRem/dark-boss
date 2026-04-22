@@ -252,7 +252,7 @@ export function CanvasPage() {
           width={520}
         >
           <div style={{ marginBottom: 12 }}>
-            <Text style={{ color: '#8c8c8c' }}>
+            <Text style={{ color: '#8b949e' }}>
               输入内容将作为工作流的初始输入，传递给「输入节点」。
             </Text>
           </div>
@@ -261,7 +261,7 @@ export function CanvasPage() {
             onChange={e => setRunInput(e.target.value)}
             placeholder="输入工作流的初始内容（可选）..."
             autoSize={{ minRows: 3, maxRows: 8 }}
-            style={{ background: '#2a2a2a', color: '#e8e8e8', borderColor: '#303030' }}
+            style={{ background: '#0a0a0c', color: '#f2f2f2', borderColor: '#3d3a39' }}
           />
         </Modal>
 
@@ -294,10 +294,10 @@ export function CanvasPage() {
           styles={{ body: { maxHeight: '60vh', overflow: 'auto' } }}
         >
           <div style={{
-            background: '#1a1a1a',
+            background: '#0a0a0c',
             borderRadius: 8,
             padding: '16px 20px',
-            color: '#e8e8e8',
+            color: '#f2f2f2',
           }}>
             {workflowResult ? (
               <MarkdownRenderer content={workflowResult} />
@@ -317,7 +317,7 @@ export function CanvasPage() {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Title level={4} style={{ color: '#e8e8e8', margin: 0 }}>工作流</Title>
+        <Title level={4} style={{ color: '#f2f2f2', margin: 0 }}>工作流</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalOpen(true)}>
           新建工作流
         </Button>
@@ -326,7 +326,7 @@ export function CanvasPage() {
       {isLoading ? (
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
           {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} style={{ width: 300, background: '#1f1f1f' }}><Skeleton active /></Card>
+            <Card key={i} style={{ width: 300, background: '#101010' }}><Skeleton active /></Card>
           ))}
         </div>
       ) : workflows.length === 0 ? (
@@ -339,13 +339,13 @@ export function CanvasPage() {
               <Card
                 key={wf.id}
                 hoverable
-                style={{ width: 300, background: '#1f1f1f', cursor: 'pointer' }}
+                style={{ width: 300, background: '#101010', cursor: 'pointer' }}
                 onClick={() => loadWorkflow(wf.id)}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <div style={{ fontWeight: 600, color: '#e8e8e8', marginBottom: 4 }}>{wf.name}</div>
-                    <Text style={{ color: '#8c8c8c', fontSize: 12 }}>
+                    <div style={{ fontWeight: 600, color: '#f2f2f2', marginBottom: 4 }}>{wf.name}</div>
+                    <Text style={{ color: '#8b949e', fontSize: 12 }}>
                       {wf.description || '无描述'}
                     </Text>
                   </div>
@@ -355,7 +355,7 @@ export function CanvasPage() {
                         type="text"
                         size="small"
                         icon={<EyeOutlined />}
-                        style={{ color: '#52c41a' }}
+                        style={{ color: '#00d992' }}
                         onClick={(e) => {
                           e.stopPropagation();
                           handleViewResult(wf.id);
@@ -439,10 +439,10 @@ export function CanvasPage() {
         styles={{ body: { maxHeight: '60vh', overflow: 'auto' } }}
       >
         <div style={{
-          background: '#1a1a1a',
+          background: '#0a0a0c',
           borderRadius: 8,
           padding: '16px 20px',
-          color: '#e8e8e8',
+          color: '#f2f2f2',
         }}>
           {workflowResult ? (
             <MarkdownRenderer content={workflowResult} />

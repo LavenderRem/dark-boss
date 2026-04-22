@@ -57,8 +57,8 @@ function buildTree(departments: Department[], agents: Agent[]) {
 function renderDeptTitle(dept: Department, agentCount: number) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: dept.color || '#1890ff', display: 'inline-block' }} />
-      <span style={{ color: '#e8e8e8' }}>{dept.name}</span>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: dept.color || '#00d992', display: 'inline-block' }} />
+      <span style={{ color: '#f2f2f2' }}>{dept.name}</span>
       <Tag style={{ marginLeft: 4, fontSize: 11 }}>{agentCount} 人</Tag>
     </span>
   );
@@ -148,7 +148,7 @@ export function OrgChartPage() {
         name: values.name,
         description: values.description,
         parentId: createParentId,
-        color: typeof values.color === 'string' ? values.color : values.color?.toHexString?.() || '#1890ff',
+        color: typeof values.color === 'string' ? values.color : values.color?.toHexString?.() || '#00d992',
         headAgentId: values.headAgentId,
       });
     });
@@ -162,7 +162,7 @@ export function OrgChartPage() {
         body: {
           name: values.name,
           description: values.description,
-          color: typeof values.color === 'string' ? values.color : values.color?.toHexString?.() || '#1890ff',
+          color: typeof values.color === 'string' ? values.color : values.color?.toHexString?.() || '#00d992',
           headAgentId: values.headAgentId,
         },
       });
@@ -254,7 +254,7 @@ export function OrgChartPage() {
         title={
           <Space>
             <ApartmentOutlined />
-            <span style={{ color: '#e8e8e8' }}>组织架构</span>
+            <span style={{ color: '#f2f2f2' }}>组织架构</span>
           </Space>
         }
         extra={
@@ -270,7 +270,7 @@ export function OrgChartPage() {
             新建部门
           </Button>
         }
-        style={{ width: 380, background: '#1f1f1f', flexShrink: 0 }}
+        style={{ width: 380, background: '#101010', flexShrink: 0 }}
         styles={{ body: { padding: '8px 12px', overflow: 'auto', maxHeight: 'calc(100vh - 180px)' } }}
       >
         {deptLoading || agentsLoading ? (
@@ -319,14 +319,14 @@ export function OrgChartPage() {
             }}
             selectedKeys={selectedKey ? [selectedKey] : []}
             onSelect={(keys) => setSelectedKey(keys[0] as string || null)}
-            style={{ background: 'transparent', color: '#e8e8e8' }}
+            style={{ background: 'transparent', color: '#f2f2f2' }}
           />
         )}
       </Card>
 
       {/* 右侧：部门详情 */}
       <Card
-        style={{ flex: 1, background: '#1f1f1f' }}
+        style={{ flex: 1, background: '#101010' }}
         styles={{ body: { padding: selectedDetail ? 24 : 40 } }}
       >
         {selectedDetail ? (
@@ -334,7 +334,7 @@ export function OrgChartPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <Space>
                 <span style={{ width: 16, height: 16, borderRadius: 4, background: selectedDetail.color, display: 'inline-block' }} />
-                <Title level={4} style={{ color: '#e8e8e8', margin: 0 }}>{selectedDetail.name}</Title>
+                <Title level={4} style={{ color: '#f2f2f2', margin: 0 }}>{selectedDetail.name}</Title>
               </Space>
               <Space>
                 <Button
@@ -357,12 +357,12 @@ export function OrgChartPage() {
             </div>
 
             {selectedDetail.description && (
-              <Text style={{ color: '#8c8c8c', display: 'block', marginBottom: 16 }}>
+              <Text style={{ color: '#8b949e', display: 'block', marginBottom: 16 }}>
                 {selectedDetail.description}
               </Text>
             )}
 
-            <Title level={5} style={{ color: '#bfbfbf', marginTop: 16 }}>
+            <Title level={5} style={{ color: '#b8b3b0', marginTop: 16 }}>
               部门成员 ({deptAgents.length})
             </Title>
 
@@ -377,8 +377,8 @@ export function OrgChartPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ fontSize: 24 }}>{roleInfo.icon}</span>
                         <div>
-                          <div style={{ color: '#e8e8e8', fontWeight: 500 }}>{agent.name}</div>
-                          <div style={{ color: '#8c8c8c', fontSize: 12 }}>{roleInfo.label}</div>
+                          <div style={{ color: '#f2f2f2', fontWeight: 500 }}>{agent.name}</div>
+                          <div style={{ color: '#8b949e', fontSize: 12 }}>{roleInfo.label}</div>
                         </div>
                       </div>
                     </Card>
@@ -412,7 +412,7 @@ export function OrgChartPage() {
           <Form.Item name="description" label="描述">
             <Input.TextArea rows={2} placeholder="部门描述（可选）" />
           </Form.Item>
-          <Form.Item name="color" label="颜色" initialValue="#1890ff">
+          <Form.Item name="color" label="颜色" initialValue="#00d992">
             <ColorPicker />
           </Form.Item>
           <Form.Item name="headAgentId" label="部门负责人">

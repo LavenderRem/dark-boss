@@ -88,12 +88,12 @@ export function AgentTerminal({
   const handleRestart = () => wsSend('agent:restart', { agentId });
   const handleClear = () => clearLines(agentId);
 
-  const statusColor = processStatus === 'running' ? '#52c41a'
-    : processStatus === 'error' ? '#ff4d4f'
-    : processStatus === 'idle' ? '#52c41a'
-    : processStatus === 'starting' ? '#faad14'
-    : processStatus === 'stopping' ? '#faad14'
-    : '#8c8c8c';
+  const statusColor = processStatus === 'running' ? '#00d992'
+    : processStatus === 'error' ? '#fb565b'
+    : processStatus === 'idle' ? '#00d992'
+    : processStatus === 'starting' ? '#ffba00'
+    : processStatus === 'stopping' ? '#ffba00'
+    : '#8b949e';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height }}>
@@ -103,14 +103,14 @@ export function AgentTerminal({
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '6px 12px',
-        background: '#1a1a2e',
-        borderBottom: '1px solid #303030',
+        background: '#050507',
+        borderBottom: '1px solid #3d3a39',
         borderRadius: '6px 6px 0 0',
         height: 38,
         flexShrink: 0,
       }}>
         <Space size={8}>
-          <span style={{ color: '#bfbfbf', fontSize: 13, fontWeight: 500 }}>
+          <span style={{ color: '#b8b3b0', fontSize: 13, fontWeight: 500 }}>
             {agentName}
           </span>
           <Tag color={statusColor} style={{ margin: 0, fontSize: 11 }}>
@@ -133,7 +133,7 @@ export function AgentTerminal({
                 icon={<PlayCircleOutlined />}
                 disabled={processStatus === 'running' || processStatus === 'idle' || processStatus === 'starting'}
                 onClick={handleSpawn}
-                style={{ color: '#52c41a' }}
+                style={{ color: '#00d992' }}
               />
             </Tooltip>
             <Tooltip title="停止">
@@ -143,7 +143,7 @@ export function AgentTerminal({
                 icon={<PauseCircleOutlined />}
                 disabled={processStatus === 'stopped'}
                 onClick={handleStop}
-                style={{ color: '#ff4d4f' }}
+                style={{ color: '#fb565b' }}
               />
             </Tooltip>
             <Tooltip title="重启">
@@ -153,7 +153,7 @@ export function AgentTerminal({
                 icon={<ReloadOutlined />}
                 disabled={processStatus === 'stopped'}
                 onClick={handleRestart}
-                style={{ color: '#faad14' }}
+                style={{ color: '#ffba00' }}
               />
             </Tooltip>
             <Tooltip title="清屏">
@@ -162,7 +162,7 @@ export function AgentTerminal({
                 type="text"
                 icon={<ClearOutlined />}
                 onClick={handleClear}
-                style={{ color: '#8c8c8c' }}
+                style={{ color: '#8b949e' }}
               />
             </Tooltip>
           </Space>

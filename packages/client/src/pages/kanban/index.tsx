@@ -29,18 +29,18 @@ const { Title, Text } = Typography;
 
 // 看板列配置
 const COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
-  { status: 'backlog', label: '待规划', color: '#8c8c8c' },
-  { status: 'todo', label: '待办', color: '#1890ff' },
-  { status: 'in_progress', label: '进行中', color: '#faad14' },
+  { status: 'backlog', label: '待规划', color: '#8b949e' },
+  { status: 'todo', label: '待办', color: '#00d992' },
+  { status: 'in_progress', label: '进行中', color: '#ffba00' },
   { status: 'review', label: '审核中', color: '#722ed1' },
-  { status: 'done', label: '已完成', color: '#52c41a' },
+  { status: 'done', label: '已完成', color: '#00d992' },
 ];
 
 const PRIORITY_CONFIG: Record<TaskPriority, { label: string; color: string }> = {
-  critical: { label: '紧急', color: '#ff4d4f' },
+  critical: { label: '紧急', color: '#fb565b' },
   high: { label: '高', color: '#fa8c16' },
-  medium: { label: '中', color: '#1890ff' },
-  low: { label: '低', color: '#8c8c8c' },
+  medium: { label: '中', color: '#00d992' },
+  low: { label: '低', color: '#8b949e' },
 };
 
 // 可拖拽的任务卡片
@@ -68,7 +68,7 @@ function TaskCard({ task, agents, onClick }: {
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div style={{ flex: 1 }}>
-          <div style={{ color: '#e8e8e8', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>
+          <div style={{ color: '#f2f2f2', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>
             {task.title}
           </div>
           <Space size={4}>
@@ -91,7 +91,7 @@ function TaskCard({ task, agents, onClick }: {
       {assignee && (
         <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={{ fontSize: 14 }}>{roleInfo?.icon}</span>
-          <Text style={{ color: '#8c8c8c', fontSize: 11 }}>{assignee.name}</Text>
+          <Text style={{ color: '#8b949e', fontSize: 11 }}>{assignee.name}</Text>
         </div>
       )}
     </Card>
@@ -332,7 +332,7 @@ export function KanbanPage() {
       {/* 顶部：标题 + 筛选栏 */}
       <div style={{ marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <Title level={4} style={{ color: '#e8e8e8', margin: 0 }}>协作看板</Title>
+          <Title level={4} style={{ color: '#f2f2f2', margin: 0 }}>协作看板</Title>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => {
             setDefaultStatus('todo');
             setCreateModalOpen(true);
@@ -348,7 +348,7 @@ export function KanbanPage() {
             value={searchText}
             onChange={e => setSearchText(e.target.value)}
             allowClear
-            style={{ width: 200, background: '#1f1f1f', borderColor: '#303030' }}
+            style={{ width: 200, background: '#101010', borderColor: '#3d3a39' }}
           />
           <Select
             allowClear
@@ -388,7 +388,7 @@ export function KanbanPage() {
       {tasksLoading || agentsLoading ? (
         <div style={{ display: 'flex', gap: 12 }}>
           {COLUMNS.map(col => (
-            <Card key={col.status} style={{ flex: 1, minWidth: 240, background: '#1a1a2e', borderRadius: 8 }}>
+            <Card key={col.status} style={{ flex: 1, minWidth: 240, background: '#050507', borderRadius: 8 }}>
               <Skeleton active />
               <Skeleton active />
             </Card>
@@ -410,7 +410,7 @@ export function KanbanPage() {
                 style={{
                   flex: 1,
                   minWidth: 240,
-                  background: '#1a1a2e',
+                  background: '#050507',
                   borderRadius: 8,
                   display: 'flex',
                   flexDirection: 'column',
@@ -419,15 +419,15 @@ export function KanbanPage() {
                 {/* 列头 */}
                 <div style={{
                   padding: '10px 14px',
-                  borderBottom: '1px solid #303030',
+                  borderBottom: '1px solid #3d3a39',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                 }}>
                   <Space>
                     <span style={{ width: 10, height: 10, borderRadius: '50%', background: col.color, display: 'inline-block' }} />
-                    <Text style={{ color: '#e8e8e8', fontWeight: 600 }}>{col.label}</Text>
-                    <Tag style={{ background: '#303030', color: '#8c8c8c', border: 'none', fontSize: 11 }}>{columnTasks.length}</Tag>
+                    <Text style={{ color: '#f2f2f2', fontWeight: 600 }}>{col.label}</Text>
+                    <Tag style={{ background: '#3d3a39', color: '#8b949e', border: 'none', fontSize: 11 }}>{columnTasks.length}</Tag>
                   </Space>
                   <Button
                     type="text"

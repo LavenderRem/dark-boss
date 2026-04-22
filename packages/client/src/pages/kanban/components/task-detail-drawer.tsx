@@ -29,10 +29,10 @@ const STATUS_CONFIG: Record<TaskStatus, { label: string; color: string }> = {
 };
 
 const PRIORITY_CONFIG: Record<TaskPriority, { label: string; color: string }> = {
-  critical: { label: '紧急', color: '#ff4d4f' },
+  critical: { label: '紧急', color: '#fb565b' },
   high: { label: '高', color: '#fa8c16' },
-  medium: { label: '中', color: '#1890ff' },
-  low: { label: '低', color: '#8c8c8c' },
+  medium: { label: '中', color: '#00d992' },
+  low: { label: '低', color: '#8b949e' },
 };
 
 function formatDate(date: Date | string | number | null | undefined): string {
@@ -130,8 +130,8 @@ export function TaskDetailDrawer({
       onClose={onClose}
       width={560}
       styles={{
-        header: { background: '#1a1a1a', borderBottom: '1px solid #303030' },
-        body: { background: '#141414', padding: 16 },
+        header: { background: '#0a0a0c', borderBottom: '1px solid #3d3a39' },
+        body: { background: '#050507', padding: 16 },
       }}
       extra={
         <Space>
@@ -184,8 +184,8 @@ export function TaskDetailDrawer({
       <Descriptions
         column={2}
         size="small"
-        labelStyle={{ color: '#8c8c8c', fontSize: 12 }}
-        contentStyle={{ color: '#e8e8e8', fontSize: 13 }}
+        labelStyle={{ color: '#8b949e', fontSize: 12 }}
+        contentStyle={{ color: '#f2f2f2', fontSize: 13 }}
       >
         <Descriptions.Item label="优先级">
           <Tag color={priorityCfg.color} style={{ margin: 0 }}>{priorityCfg.label}</Tag>
@@ -195,7 +195,7 @@ export function TaskDetailDrawer({
             <Space size={4}>
               <span>{roleInfo?.icon}</span>
               <span>{assignee.name}</span>
-              <Text style={{ color: '#8c8c8c', fontSize: 11 }}>({roleInfo?.label})</Text>
+              <Text style={{ color: '#8b949e', fontSize: 11 }}>({roleInfo?.label})</Text>
             </Space>
           ) : <Text style={{ color: '#595959' }}>未指派</Text>}
         </Descriptions.Item>
@@ -206,7 +206,7 @@ export function TaskDetailDrawer({
           <Descriptions.Item label="关联工作流">
             <a
               onClick={handleNavigateToWorkflow}
-              style={{ color: '#1890ff', cursor: 'pointer', textDecoration: 'underline' }}
+              style={{ color: '#00d992', cursor: 'pointer', textDecoration: 'underline' }}
             >
               {workflow.name}
             </a>
@@ -217,9 +217,9 @@ export function TaskDetailDrawer({
       {/* 描述 */}
       {task.description && (
         <div style={{ marginTop: 12 }}>
-          <Text style={{ color: '#8c8c8c', fontSize: 12 }}>描述</Text>
+          <Text style={{ color: '#8b949e', fontSize: 12 }}>描述</Text>
           <div style={{
-            background: '#1a1a1a',
+            background: '#0a0a0c',
             borderRadius: 6,
             padding: '8px 12px',
             marginTop: 4,
@@ -234,42 +234,42 @@ export function TaskDetailDrawer({
       )}
 
       {/* 时间信息 */}
-      <Divider style={{ borderColor: '#303030', margin: '16px 0' }} />
+      <Divider style={{ borderColor: '#3d3a39', margin: '16px 0' }} />
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
         <div>
           <Space size={4}>
-            <CalendarOutlined style={{ color: '#8c8c8c' }} />
-            <Text style={{ color: '#8c8c8c', fontSize: 12 }}>创建</Text>
+            <CalendarOutlined style={{ color: '#8b949e' }} />
+            <Text style={{ color: '#8b949e', fontSize: 12 }}>创建</Text>
           </Space>
-          <div style={{ color: '#bfbfbf', fontSize: 12, marginTop: 2 }}>{formatDate(task.createdAt)}</div>
+          <div style={{ color: '#b8b3b0', fontSize: 12, marginTop: 2 }}>{formatDate(task.createdAt)}</div>
         </div>
         {task.startedAt && (
           <div>
             <Space size={4}>
-              <PlayCircleOutlined style={{ color: '#1890ff' }} />
-              <Text style={{ color: '#8c8c8c', fontSize: 12 }}>开始</Text>
+              <PlayCircleOutlined style={{ color: '#00d992' }} />
+              <Text style={{ color: '#8b949e', fontSize: 12 }}>开始</Text>
             </Space>
-            <div style={{ color: '#bfbfbf', fontSize: 12, marginTop: 2 }}>{formatDate(task.startedAt)}</div>
+            <div style={{ color: '#b8b3b0', fontSize: 12, marginTop: 2 }}>{formatDate(task.startedAt)}</div>
           </div>
         )}
         {task.completedAt && (
           <div>
             <Space size={4}>
-              <CheckCircleOutlined style={{ color: '#52c41a' }} />
-              <Text style={{ color: '#8c8c8c', fontSize: 12 }}>完成</Text>
+              <CheckCircleOutlined style={{ color: '#00d992' }} />
+              <Text style={{ color: '#8b949e', fontSize: 12 }}>完成</Text>
             </Space>
-            <div style={{ color: '#bfbfbf', fontSize: 12, marginTop: 2 }}>{formatDate(task.completedAt)}</div>
+            <div style={{ color: '#b8b3b0', fontSize: 12, marginTop: 2 }}>{formatDate(task.completedAt)}</div>
           </div>
         )}
         {task.dueAt && (
           <div>
             <Space size={4}>
-              <CalendarOutlined style={{ color: isOverdue ? '#ff4d4f' : '#8c8c8c' }} />
-              <Text style={{ color: isOverdue ? '#ff4d4f' : '#8c8c8c', fontSize: 12 }}>
+              <CalendarOutlined style={{ color: isOverdue ? '#fb565b' : '#8b949e' }} />
+              <Text style={{ color: isOverdue ? '#fb565b' : '#8b949e', fontSize: 12 }}>
                 截止 {isOverdue && '(已逾期)'}
               </Text>
             </Space>
-            <div style={{ color: isOverdue ? '#ff4d4f' : '#bfbfbf', fontSize: 12, marginTop: 2 }}>
+            <div style={{ color: isOverdue ? '#fb565b' : '#b8b3b0', fontSize: 12, marginTop: 2 }}>
               {formatDate(task.dueAt)}
             </div>
           </div>
@@ -281,14 +281,14 @@ export function TaskDetailDrawer({
         <div style={{ marginTop: 12, display: 'flex', gap: 16 }}>
           {task.estimatedMinutes && (
             <Space size={4}>
-              <FieldTimeOutlined style={{ color: '#8c8c8c' }} />
-              <Text style={{ color: '#8c8c8c', fontSize: 12 }}>预估: {formatDuration(task.estimatedMinutes)}</Text>
+              <FieldTimeOutlined style={{ color: '#8b949e' }} />
+              <Text style={{ color: '#8b949e', fontSize: 12 }}>预估: {formatDuration(task.estimatedMinutes)}</Text>
             </Space>
           )}
           {task.actualMinutes && (
             <Space size={4}>
-              <CheckCircleOutlined style={{ color: '#52c41a' }} />
-              <Text style={{ color: '#52c41a', fontSize: 12 }}>实际: {formatDuration(task.actualMinutes)}</Text>
+              <CheckCircleOutlined style={{ color: '#00d992' }} />
+              <Text style={{ color: '#00d992', fontSize: 12 }}>实际: {formatDuration(task.actualMinutes)}</Text>
             </Space>
           )}
         </div>
@@ -297,14 +297,14 @@ export function TaskDetailDrawer({
       {/* 执行结果 */}
       {task.result && (
         <>
-          <Divider style={{ borderColor: '#303030', margin: '16px 0' }} />
+          <Divider style={{ borderColor: '#3d3a39', margin: '16px 0' }} />
           <div>
-            <Text style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 8, display: 'block' }}>执行结果</Text>
+            <Text style={{ color: '#8b949e', fontSize: 12, marginBottom: 8, display: 'block' }}>执行结果</Text>
             <div style={{
-              background: '#1a1a1a',
+              background: '#0a0a0c',
               borderRadius: 6,
               padding: '12px 16px',
-              border: '1px solid #303030',
+              border: '1px solid #3d3a39',
             }}>
               <MarkdownRenderer content={task.result} />
             </div>
@@ -323,7 +323,7 @@ export function TaskDetailDrawer({
         cancelText="取消"
       >
         <div style={{ marginBottom: 12 }}>
-          <Text style={{ color: '#8c8c8c' }}>
+          <Text style={{ color: '#8b949e' }}>
             输入内容将作为工作流的初始输入。
           </Text>
         </div>
@@ -332,7 +332,7 @@ export function TaskDetailDrawer({
           onChange={e => setRunInput(e.target.value)}
           placeholder="输入工作流的初始内容（可选）..."
           autoSize={{ minRows: 3, maxRows: 8 }}
-          style={{ background: '#2a2a2a', color: '#e8e8e8', borderColor: '#303030' }}
+          style={{ background: '#0a0a0c', color: '#f2f2f2', borderColor: '#3d3a39' }}
         />
       </Modal>
     </Drawer>

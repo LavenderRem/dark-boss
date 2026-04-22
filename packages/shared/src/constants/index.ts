@@ -22,11 +22,11 @@ export const DEFAULT_TOOLS = [
 
 // Agent 状态颜色
 export const AGENT_STATUS_COLORS: Record<string, string> = {
-  idle: '#52c41a',
-  working: '#1890ff',
-  waiting: '#faad14',
-  error: '#ff4d4f',
-  offline: '#d9d9d9',
+  idle: '#00d992',
+  working: '#00d992',
+  waiting: '#ffba00',
+  error: '#fb565b',
+  offline: '#8b949e',
 };
 
 // Agent 状态标签

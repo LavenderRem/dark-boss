@@ -126,10 +126,10 @@ export function MarketPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Title level={4} style={{ color: '#e8e8e8', margin: 0 }}>
+        <Title level={4} style={{ color: '#f2f2f2', margin: 0 }}>
           招聘市场
         </Title>
-        <Text style={{ color: '#8c8c8c' }}>
+        <Text style={{ color: '#8b949e' }}>
           从模板库中招聘 AI Agent，为你的团队增添新成员
         </Text>
       </div>
@@ -154,7 +154,7 @@ export function MarketPage() {
         <Row gutter={[16, 16]}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Col key={i} xs={24} sm={12} md={8} lg={6}>
-              <Card style={{ background: '#1f1f1f' }}>
+              <Card style={{ background: '#101010' }}>
                 <Skeleton active />
               </Card>
             </Col>
@@ -169,7 +169,7 @@ export function MarketPage() {
               <Card
                 hoverable
                 style={{
-                  background: '#1f1f1f',
+                  background: '#101010',
                   borderTop: `3px solid ${template.color}`,
                   height: '100%',
                   display: 'flex',
@@ -180,7 +180,7 @@ export function MarketPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <span style={{ fontSize: 28 }}>{template.icon}</span>
                     <div>
-                      <div style={{ fontWeight: 600, color: '#e8e8e8' }}>{template.name}</div>
+                      <div style={{ fontWeight: 600, color: '#f2f2f2' }}>{template.name}</div>
                       <Tag color={template.color} style={{ fontSize: 11 }}>
                         {template.category}
                       </Tag>
@@ -188,7 +188,7 @@ export function MarketPage() {
                   </div>
 
                   <Paragraph
-                    style={{ color: '#8c8c8c', fontSize: 13, marginBottom: 12 }}
+                    style={{ color: '#8b949e', fontSize: 13, marginBottom: 12 }}
                     ellipsis={{ rows: 2 }}
                   >
                     {template.description}
@@ -200,7 +200,7 @@ export function MarketPage() {
                       try {
                         const tools: string[] = JSON.parse(template.allowedTools || '[]');
                         return tools.slice(0, 4).map(tool => (
-                          <Tag key={tool} style={{ fontSize: 11, marginBottom: 2, background: '#303030', borderColor: '#404040' }}>
+                          <Tag key={tool} style={{ fontSize: 11, marginBottom: 2, background: '#3d3a39', borderColor: '#3d3a39' }}>
                             {tool}
                           </Tag>
                         ));
@@ -210,7 +210,7 @@ export function MarketPage() {
                       try {
                         const tools: string[] = JSON.parse(template.allowedTools || '[]');
                         return tools.length > 4
-                          ? <Tag style={{ fontSize: 11, background: '#303030', borderColor: '#404040' }}>+{tools.length - 4}</Tag>
+                          ? <Tag style={{ fontSize: 11, background: '#3d3a39', borderColor: '#3d3a39' }}>+{tools.length - 4}</Tag>
                           : null;
                       } catch { return null; }
                     })()}
@@ -221,11 +221,11 @@ export function MarketPage() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  borderTop: '1px solid #303030',
+                  borderTop: '1px solid #3d3a39',
                   paddingTop: 12,
                 }}>
                   <Space size={12}>
-                    <span style={{ color: '#8c8c8c', fontSize: 12 }}>
+                    <span style={{ color: '#8b949e', fontSize: 12 }}>
                       <DownloadOutlined /> {template.installCount}
                     </span>
                     <Rate
@@ -271,14 +271,14 @@ export function MarketPage() {
         {installModal && (
           <div>
             {/* 模板介绍 */}
-            <Card size="small" style={{ background: '#141414', marginBottom: 16 }}>
-              <Text style={{ color: '#bfbfbf' }}>{installModal.description}</Text>
-              <Divider style={{ borderColor: '#303030', margin: '12px 0' }} />
+            <Card size="small" style={{ background: '#0a0a0c', marginBottom: 16 }}>
+              <Text style={{ color: '#b8b3b0' }}>{installModal.description}</Text>
+              <Divider style={{ borderColor: '#3d3a39', margin: '12px 0' }} />
               <Space wrap>
-                <Text style={{ color: '#8c8c8c', fontSize: 12 }}>
+                <Text style={{ color: '#8b949e', fontSize: 12 }}>
                   默认模型: <Tag>{installModal.model || 'sonnet'}</Tag>
                 </Text>
-                <Text style={{ color: '#8c8c8c', fontSize: 12 }}>
+                <Text style={{ color: '#8b949e', fontSize: 12 }}>
                   默认工具: {(() => {
                     try {
                       return JSON.parse(installModal.allowedTools || '[]').length + ' 个';
@@ -291,7 +291,7 @@ export function MarketPage() {
             {/* 自定义表单 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
-                <Text style={{ color: '#bfbfbf', display: 'block', marginBottom: 4 }}>员工名称</Text>
+                <Text style={{ color: '#b8b3b0', display: 'block', marginBottom: 4 }}>员工名称</Text>
                 <Input
                   value={installForm.name}
                   onChange={e => setInstallForm(f => ({ ...f, name: e.target.value }))}
@@ -299,8 +299,8 @@ export function MarketPage() {
                 />
               </div>
               <div>
-                <Text style={{ color: '#bfbfbf', display: 'block', marginBottom: 4 }}>
-                  工作目录 <Text style={{ color: '#ff4d4f' }}>*</Text>
+                <Text style={{ color: '#b8b3b0', display: 'block', marginBottom: 4 }}>
+                  工作目录 <Text style={{ color: '#fb565b' }}>*</Text>
                 </Text>
                 <Input
                   value={installForm.cwd}
@@ -310,7 +310,7 @@ export function MarketPage() {
               </div>
               <Row gutter={16}>
                 <Col span={12}>
-                  <Text style={{ color: '#bfbfbf', display: 'block', marginBottom: 4 }}>模型选择</Text>
+                  <Text style={{ color: '#b8b3b0', display: 'block', marginBottom: 4 }}>模型选择</Text>
                   <Select
                     value={installForm.model}
                     onChange={v => setInstallForm(f => ({ ...f, model: v }))}
@@ -323,7 +323,7 @@ export function MarketPage() {
                   />
                 </Col>
                 <Col span={12}>
-                  <Text style={{ color: '#bfbfbf', display: 'block', marginBottom: 4 }}>所属部门</Text>
+                  <Text style={{ color: '#b8b3b0', display: 'block', marginBottom: 4 }}>所属部门</Text>
                   <Select
                     value={installForm.departmentId || undefined}
                     onChange={v => setInstallForm(f => ({ ...f, departmentId: v }))}

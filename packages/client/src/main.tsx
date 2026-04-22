@@ -16,16 +16,56 @@ const queryClient = new QueryClient({
   },
 });
 
-// Ant Design 深色企业主题
 const themeConfig = {
   algorithm: theme.darkAlgorithm,
   token: {
-    colorPrimary: '#1890ff',
-    colorBgBase: '#141414',
-    colorBgContainer: '#1f1f1f',
-    colorBgElevated: '#262626',
+    colorPrimary: '#00d992',
+    colorBgBase: '#050507',
+    colorBgContainer: '#101010',
+    colorBgElevated: '#1a1a1a',
+    colorBorder: '#3d3a39',
+    colorBorderSecondary: '#3d3a39',
+    colorText: '#f2f2f2',
+    colorTextSecondary: '#b8b3b0',
+    colorTextTertiary: '#8b949e',
+    colorTextQuaternary: '#595959',
     borderRadius: 6,
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif',
+    fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    fontFamilyCode: "'SFMono-Regular', 'JetBrains Mono', Consolas, monospace",
+    colorSuccess: '#00d992',
+    colorWarning: '#ffba00',
+    colorError: '#fb565b',
+    colorInfo: '#4cb3d4',
+  },
+  components: {
+    Menu: {
+      darkItemBg: 'transparent',
+      darkItemSelectedBg: 'rgba(0, 217, 146, 0.1)',
+      darkItemHoverBg: 'rgba(0, 217, 146, 0.05)',
+      itemSelectedColor: '#00d992',
+      itemHoverColor: '#00ffaa',
+    },
+    Card: {
+      colorBgContainer: '#101010',
+      colorBorderSecondary: '#3d3a39',
+    },
+    Modal: {
+      contentBg: '#101010',
+      headerBg: '#101010',
+    },
+    Table: {
+      colorBgContainer: '#101010',
+      headerBg: '#0a0a0c',
+      rowHoverBg: 'rgba(0, 217, 146, 0.05)',
+    },
+    Input: {
+      colorBgContainer: '#0a0a0c',
+      colorBorder: '#3d3a39',
+    },
+    Tag: {
+      defaultBg: 'rgba(61, 58, 57, 0.3)',
+      defaultColor: '#b8b3b0',
+    },
   },
 };
 

@@ -1,30 +1,30 @@
 /**
  * xterm.js 终端主题和颜色配置
- * 与应用整体暗黑风格保持一致
+ * 基于 VoltAgent 设计系统
  */
 import type { ITheme } from '@xterm/xterm';
 
 /** 暗黑终端主题 */
 export const TERMINAL_THEME: ITheme = {
-  background: '#0d1117',
-  foreground: '#e8e8e8',
-  cursor: '#69b7ff',
-  cursorAccent: '#0d1117',
-  selectionBackground: '#264f78',
-  selectionForeground: '#e8e8e8',
-  selectionInactiveBackground: '#1a3a5c',
-  black: '#0d1117',
-  red: '#ff6b6b',
-  green: '#8ce99a',
-  yellow: '#ffd43b',
-  blue: '#69b7ff',
-  magenta: '#da77f2',
-  cyan: '#66d9e8',
-  white: '#e8e8e8',
+  background: '#050507',
+  foreground: '#f2f2f2',
+  cursor: '#00d992',
+  cursorAccent: '#050507',
+  selectionBackground: 'rgba(0, 217, 146, 0.3)',
+  selectionForeground: '#f2f2f2',
+  selectionInactiveBackground: 'rgba(0, 217, 146, 0.15)',
+  black: '#050507',
+  red: '#fb565b',
+  green: '#00d992',
+  yellow: '#ffba00',
+  blue: '#4cb3d4',
+  magenta: '#818cf8',
+  cyan: '#4cb3d4',
+  white: '#f2f2f2',
   brightBlack: '#595959',
-  brightRed: '#ff8787',
-  brightGreen: '#b2f2bb',
-  brightYellow: '#ffe066',
+  brightRed: '#fd9c9f',
+  brightGreen: '#2fd6a1',
+  brightYellow: '#ffdd80',
   brightBlue: '#74c0fc',
   brightMagenta: '#e599f7',
   brightCyan: '#99e9f2',

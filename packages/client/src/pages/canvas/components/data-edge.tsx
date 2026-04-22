@@ -35,7 +35,7 @@ export const DataEdge = memo(function DataEdge({
         id={id}
         path={edgePath}
         style={{
-          stroke: isActive ? '#1890ff' : selected ? '#4096ff' : '#434343',
+          stroke: isActive ? '#00d992' : selected ? '#4096ff' : '#434343',
           strokeWidth: isActive ? 2.5 : selected ? 2 : 1.5,
           strokeDasharray: isActive ? undefined : undefined,
           transition: 'stroke 0.3s, stroke-width 0.3s',
@@ -62,8 +62,8 @@ export const DataEdge = memo(function DataEdge({
               height: 18,
               borderRadius: '50%',
               border: '1px solid #434343',
-              background: '#262626',
-              color: '#8c8c8c',
+              background: '#0a0a0c',
+              color: '#8b949e',
               fontSize: 12,
               lineHeight: '18px',
               cursor: 'pointer',

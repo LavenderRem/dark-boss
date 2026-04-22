@@ -75,8 +75,8 @@ export function FileExplorer({ workingDir, agentId, height = 500 }: FileExplorer
     key: node.key,
     title: node.title,
     icon: node.isLeaf
-      ? <FileOutlined style={{ color: '#8c8c8c' }} />
-      : <FolderOutlined style={{ color: '#faad14' }} />,
+      ? <FileOutlined style={{ color: '#8b949e' }} />
+      : <FolderOutlined style={{ color: '#ffba00' }} />,
     isLeaf: node.isLeaf,
     children: node.children?.map(convertToAntdTree),
   }), []);
@@ -97,16 +97,16 @@ export function FileExplorer({ workingDir, agentId, height = 500 }: FileExplorer
       width: 80,
       render: (action: string) => {
         const colorMap: Record<string, string> = {
-          create: '#52c41a',
-          modify: '#1890ff',
-          delete: '#ff4d4f',
+          create: '#00d992',
+          modify: '#00d992',
+          delete: '#fb565b',
         };
         const labelMap: Record<string, string> = {
           create: '新建',
           modify: '修改',
           delete: '删除',
         };
-        return <Tag color={colorMap[action] || '#8c8c8c'}>{labelMap[action] || action}</Tag>;
+        return <Tag color={colorMap[action] || '#8b949e'}>{labelMap[action] || action}</Tag>;
       },
     },
     {
@@ -114,7 +114,7 @@ export function FileExplorer({ workingDir, agentId, height = 500 }: FileExplorer
       dataIndex: 'filePath',
       key: 'filePath',
       ellipsis: true,
-      render: (v: string) => <span style={{ color: '#bfbfbf', fontSize: 12 }}>{v}</span>,
+      render: (v: string) => <span style={{ color: '#b8b3b0', fontSize: 12 }}>{v}</span>,
     },
     {
       title: '时间',
@@ -122,7 +122,7 @@ export function FileExplorer({ workingDir, agentId, height = 500 }: FileExplorer
       key: 'createdAt',
       width: 150,
       render: (ts: number) => (
-        <span style={{ color: '#8c8c8c', fontSize: 12 }}>
+        <span style={{ color: '#8b949e', fontSize: 12 }}>
           {new Date(ts).toLocaleString('zh-CN')}
         </span>
       ),
@@ -134,11 +134,11 @@ export function FileExplorer({ workingDir, agentId, height = 500 }: FileExplorer
       {/* 左侧文件树 */}
       <div style={{
         width: 260,
-        borderRight: '1px solid #303030',
+        borderRight: '1px solid #3d3a39',
         overflow: 'auto',
         paddingRight: 8,
       }}>
-        <Typography.Text strong style={{ color: '#bfbfbf', fontSize: 13, display: 'block', marginBottom: 8 }}>
+        <Typography.Text strong style={{ color: '#b8b3b0', fontSize: 13, display: 'block', marginBottom: 8 }}>
           文件浏览器
         </Typography.Text>
         {treeLoading ? (
@@ -155,7 +155,7 @@ export function FileExplorer({ workingDir, agentId, height = 500 }: FileExplorer
                 setActiveTab('content');
               }
             }}
-            style={{ background: 'transparent', color: '#e8e8e8', fontSize: 12 }}
+            style={{ background: 'transparent', color: '#f2f2f2', fontSize: 12 }}
           />
         )}
       </div>
@@ -177,28 +177,28 @@ export function FileExplorer({ workingDir, agentId, height = 500 }: FileExplorer
                     justifyContent: 'space-between',
                     marginBottom: 8,
                     padding: '4px 8px',
-                    background: '#1f1f1f',
+                    background: '#101010',
                     borderRadius: 4,
                   }}>
                     <Space size={8}>
                       <Tag>{fileContent.ext || 'txt'}</Tag>
-                      <span style={{ color: '#8c8c8c', fontSize: 12 }}>
+                      <span style={{ color: '#8b949e', fontSize: 12 }}>
                         {formatSize(fileContent.size)}
                       </span>
                     </Space>
-                    <span style={{ color: '#8c8c8c', fontSize: 12 }}>
+                    <span style={{ color: '#8b949e', fontSize: 12 }}>
                       {new Date(fileContent.modifiedAt).toLocaleString('zh-CN')}
                     </span>
                   </div>
                   <pre style={{
-                    background: '#0d1117',
+                    background: '#050507',
                     padding: 12,
                     borderRadius: 4,
                     overflow: 'auto',
                     maxHeight: height as number - 80,
                     fontSize: 13,
                     lineHeight: 1.5,
-                    color: '#e8e8e8',
+                    color: '#f2f2f2',
                     fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-all',

@@ -35,8 +35,8 @@ function CodeBlock({ className, children }: { className?: string; children?: Rea
           right: language ? 80 : 12,
           padding: '2px 8px',
           fontSize: 11,
-          color: '#8c8c8c',
-          background: '#1a1a1a',
+          color: '#8b949e',
+          background: '#0a0a0c',
           borderRadius: '0 0 4px 0',
           zIndex: 1,
         }}>
@@ -53,21 +53,21 @@ function CodeBlock({ className, children }: { className?: string; children?: Rea
           top: 4,
           right: 4,
           fontSize: 11,
-          color: copied ? '#52c41a' : '#8c8c8c',
+          color: copied ? '#00d992' : '#8b949e',
           zIndex: 1,
         }}
       >
         {copied ? '已复制' : ''}
       </Button>
       <pre style={{
-        background: '#1a1a1a',
+        background: '#0a0a0c',
         borderRadius: 6,
         padding: '12px 16px',
         overflow: 'auto',
         fontSize: 13,
         lineHeight: 1.5,
         margin: 0,
-        border: '1px solid #303030',
+        border: '1px solid #3d3a39',
       }}>
         <code className={className}>{children}</code>
       </pre>
@@ -88,11 +88,11 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
             return (
               <code
                 style={{
-                  background: '#303030',
+                  background: '#3d3a39',
                   padding: '2px 6px',
                   borderRadius: 3,
                   fontSize: '0.9em',
-                  color: '#e8e8e8',
+                  color: '#f2f2f2',
                 }}
                 {...props}
               >
@@ -112,7 +112,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           if (child?.props?.className) {
             return <CodeBlock className={child.props.className}>{child.props.children}</CodeBlock>;
           }
-          return <pre style={{ background: '#1a1a1a', borderRadius: 6, padding: 12 }}>{children}</pre>;
+          return <pre style={{ background: '#0a0a0c', borderRadius: 6, padding: 12 }}>{children}</pre>;
         },
         // 段落
         p({ children }) {
@@ -120,17 +120,17 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
         },
         // 标题
         h1({ children }) {
-          return <h1 style={{ color: '#e8e8e8', fontSize: 18, margin: '12px 0 8px', fontWeight: 600 }}>{children}</h1>;
+          return <h1 style={{ color: '#f2f2f2', fontSize: 18, margin: '12px 0 8px', fontWeight: 600 }}>{children}</h1>;
         },
         h2({ children }) {
-          return <h2 style={{ color: '#e8e8e8', fontSize: 16, margin: '10px 0 6px', fontWeight: 600 }}>{children}</h2>;
+          return <h2 style={{ color: '#f2f2f2', fontSize: 16, margin: '10px 0 6px', fontWeight: 600 }}>{children}</h2>;
         },
         h3({ children }) {
-          return <h3 style={{ color: '#e8e8e8', fontSize: 15, margin: '8px 0 4px', fontWeight: 600 }}>{children}</h3>;
+          return <h3 style={{ color: '#f2f2f2', fontSize: 15, margin: '8px 0 4px', fontWeight: 600 }}>{children}</h3>;
         },
         // 链接
         a({ href, children }) {
-          return <a href={href} style={{ color: '#4096ff', textDecoration: 'none' }} target="_blank" rel="noopener noreferrer">{children}</a>;
+          return <a href={href} style={{ color: '#00d992', textDecoration: 'none' }} target="_blank" rel="noopener noreferrer">{children}</a>;
         },
         // 列表
         ul({ children }) {
@@ -146,10 +146,10 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
         blockquote({ children }) {
           return (
             <blockquote style={{
-              borderLeft: '3px solid #4096ff',
+              borderLeft: '3px solid #00d992',
               paddingLeft: 12,
               margin: '8px 0',
-              color: '#bfbfbf',
+              color: '#b8b3b0',
             }}>
               {children}
             </blockquote>
@@ -172,9 +172,9 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
         th({ children }) {
           return (
             <th style={{
-              border: '1px solid #303030',
+              border: '1px solid #3d3a39',
               padding: '6px 12px',
-              background: '#1a1a1a',
+              background: '#0a0a0c',
               textAlign: 'left',
               fontWeight: 600,
             }}>
@@ -185,7 +185,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
         td({ children }) {
           return (
             <td style={{
-              border: '1px solid #303030',
+              border: '1px solid #3d3a39',
               padding: '6px 12px',
             }}>
               {children}
@@ -194,7 +194,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
         },
         // 水平线
         hr() {
-          return <hr style={{ border: 'none', borderTop: '1px solid #303030', margin: '12px 0' }} />;
+          return <hr style={{ border: 'none', borderTop: '1px solid #3d3a39', margin: '12px 0' }} />;
         },
         // 粗体
         strong({ children }) {
@@ -202,7 +202,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
         },
         // 删除线
         del({ children }) {
-          return <del style={{ color: '#8c8c8c' }}>{children}</del>;
+          return <del style={{ color: '#8b949e' }}>{children}</del>;
         },
       }}
     >

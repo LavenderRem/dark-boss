@@ -61,26 +61,26 @@ export function StreamingMessage({ agentId, agents, onWsMessage }: StreamingMess
       <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
         <Avatar
           size={36}
-          style={{ background: roleInfo?.color || '#52c41a', flexShrink: 0 }}
+          style={{ background: roleInfo?.color || '#00d992', flexShrink: 0 }}
           icon={<RobotOutlined />}
         >
           {agent?.name?.[0]}
         </Avatar>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <Text style={{ color: '#bfbfbf', fontSize: 13, fontWeight: 500 }}>
+            <Text style={{ color: '#b8b3b0', fontSize: 13, fontWeight: 500 }}>
               {agent?.name || 'Agent'}
             </Text>
-            <Text style={{ color: '#8c8c8c', fontSize: 11 }}>
+            <Text style={{ color: '#8b949e', fontSize: 11 }}>
               <LoadingOutlined style={{ marginRight: 4 }} />
               正在思考...
             </Text>
           </div>
           <div style={{
-            background: '#2a2a2a',
+            background: '#0a0a0c',
             borderRadius: 8,
             padding: '8px 14px',
-            color: '#8c8c8c',
+            color: '#8b949e',
             fontSize: 14,
           }}>
             <LoadingOutlined /> 正在生成回复...
@@ -96,17 +96,17 @@ export function StreamingMessage({ agentId, agents, onWsMessage }: StreamingMess
     <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
       <Avatar
         size={36}
-        style={{ background: roleInfo?.color || '#52c41a', flexShrink: 0 }}
+        style={{ background: roleInfo?.color || '#00d992', flexShrink: 0 }}
         icon={<RobotOutlined />}
       >
         {agent?.name?.[0]}
       </Avatar>
       <div style={{ maxWidth: '70%' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <Text style={{ color: '#bfbfbf', fontSize: 13, fontWeight: 500 }}>
+          <Text style={{ color: '#b8b3b0', fontSize: 13, fontWeight: 500 }}>
             {agent?.name || 'Agent'}
           </Text>
-          <Text style={{ color: '#8c8c8c', fontSize: 11 }}>
+          <Text style={{ color: '#8b949e', fontSize: 11 }}>
             {isStreaming ? (
               <><LoadingOutlined style={{ marginRight: 4 }} />正在回复...</>
             ) : (
@@ -115,10 +115,10 @@ export function StreamingMessage({ agentId, agents, onWsMessage }: StreamingMess
           </Text>
         </div>
         <div style={{
-          background: '#2a2a2a',
+          background: '#0a0a0c',
           borderRadius: 8,
           padding: '8px 14px',
-          color: '#e8e8e8',
+          color: '#f2f2f2',
           fontSize: 14,
           lineHeight: 1.6,
           wordBreak: 'break-word',
@@ -129,7 +129,7 @@ export function StreamingMessage({ agentId, agents, onWsMessage }: StreamingMess
               display: 'inline-block',
               width: 2,
               height: 16,
-              background: '#4096ff',
+              background: '#00d992',
               marginLeft: 2,
               verticalAlign: 'middle',
               animation: 'blink 1s step-end infinite',

@@ -43,24 +43,24 @@ export const AgentNode = memo(function AgentNode({ id, data, selected }: AgentNo
   // 根据关联任务状态确定节点边框颜色
   const latestTask = relatedTasks.length > 0 ? relatedTasks[relatedTasks.length - 1] : null;
   const taskBorderColor = latestTask?.status === 'done'
-    ? '#52c41a'
+    ? '#00d992'
     : latestTask?.status === 'in_progress'
-      ? '#1890ff'
+      ? '#00d992'
       : latestTask?.status === 'review'
         ? '#722ed1'
         : null;
 
   const borderColor = executing
-    ? '#1890ff'
+    ? '#00d992'
     : completed
-      ? '#52c41a'
+      ? '#00d992'
       : taskBorderColor
         ? taskBorderColor
-        : selected ? '#1890ff' : '#434343';
+        : selected ? '#00d992' : '#434343';
   const glowShadow = executing
-    ? '0 0 16px #1890ff66, 0 0 32px #1890ff33'
+    ? '0 0 16px #00d99266, 0 0 32px #00d99233'
     : completed
-      ? '0 0 8px #52c41a33'
+      ? '0 0 8px #00d99233'
       : 'none';
 
   // 任务数量徽标
@@ -78,7 +78,7 @@ export const AgentNode = memo(function AgentNode({ id, data, selected }: AgentNo
             return (
               <div key={task.id} style={{
                 padding: '6px 0',
-                borderBottom: '1px solid #303030',
+                borderBottom: '1px solid #3d3a39',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
@@ -101,7 +101,7 @@ export const AgentNode = memo(function AgentNode({ id, data, selected }: AgentNo
           position: 'absolute',
           top: -6,
           right: -6,
-          background: '#1890ff',
+          background: '#00d992',
           borderRadius: '50%',
           width: 20,
           height: 20,
@@ -113,7 +113,7 @@ export const AgentNode = memo(function AgentNode({ id, data, selected }: AgentNo
           fontSize: 10,
           color: '#fff',
           fontWeight: 600,
-          boxShadow: '0 0 4px #1890ff88',
+          boxShadow: '0 0 4px #00d99288',
         }}
       >
         {relatedTasks.length}
@@ -142,14 +142,14 @@ export const AgentNode = memo(function AgentNode({ id, data, selected }: AgentNo
       <div style={{
         padding: '12px 16px',
         borderRadius: 8,
-        background: executing ? '#111a33' : completed ? '#0f1f14' : '#1f1f1f',
+        background: executing ? '#111a33' : completed ? '#0f1f14' : '#101010',
         border: `2px solid ${borderColor}`,
         minWidth: 160,
         position: 'relative',
         boxShadow: glowShadow,
         transition: 'border-color 0.3s, box-shadow 0.3s, background 0.3s',
       }}>
-        <Handle type="target" position={Position.Top} style={{ background: '#1890ff', width: 8, height: 8 }} />
+        <Handle type="target" position={Position.Top} style={{ background: '#00d992', width: 8, height: 8 }} />
 
         {/* 头部：角色图标 + 名称 + 状态指示 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -157,7 +157,7 @@ export const AgentNode = memo(function AgentNode({ id, data, selected }: AgentNo
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
               fontWeight: 600,
-              color: '#e8e8e8',
+              color: '#f2f2f2',
               fontSize: 13,
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -165,15 +165,15 @@ export const AgentNode = memo(function AgentNode({ id, data, selected }: AgentNo
             }}>
               {data.agentName || data.label}
             </div>
-            <div style={{ fontSize: 11, color: '#8c8c8c' }}>
+            <div style={{ fontSize: 11, color: '#8b949e' }}>
               {roleInfo.label}
             </div>
           </div>
           {/* 执行状态指示器 */}
           {executing ? (
-            <LoadingOutlined spin style={{ color: '#1890ff', fontSize: 16 }} />
+            <LoadingOutlined spin style={{ color: '#00d992', fontSize: 16 }} />
           ) : completed ? (
-            <CheckCircleOutlined style={{ color: '#52c41a', fontSize: 16 }} />
+            <CheckCircleOutlined style={{ color: '#00d992', fontSize: 16 }} />
           ) : (
             <Badge
               color={statusColor}
@@ -189,8 +189,8 @@ export const AgentNode = memo(function AgentNode({ id, data, selected }: AgentNo
             padding: '1px 6px',
             borderRadius: 4,
             fontSize: 10,
-            background: '#303030',
-            color: '#bfbfbf',
+            background: '#3d3a39',
+            color: '#b8b3b0',
           }}>
             {data.model}
           </div>
@@ -202,14 +202,14 @@ export const AgentNode = memo(function AgentNode({ id, data, selected }: AgentNo
             position: 'absolute',
             inset: -2,
             borderRadius: 10,
-            border: '2px solid #1890ff',
+            border: '2px solid #00d992',
             opacity: 0.4,
             animation: 'agent-pulse 1.5s ease-in-out infinite',
             pointerEvents: 'none',
           }} />
         )}
 
-        <Handle type="source" position={Position.Bottom} style={{ background: '#1890ff', width: 8, height: 8 }} />
+        <Handle type="source" position={Position.Bottom} style={{ background: '#00d992', width: 8, height: 8 }} />
       </div>
     </Tooltip>
     </>

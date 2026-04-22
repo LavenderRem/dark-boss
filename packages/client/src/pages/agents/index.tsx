@@ -91,7 +91,7 @@ export function AgentsPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <Title level={4} style={{ color: '#e8e8e8', margin: 0 }}>员工管理</Title>
+        <Title level={4} style={{ color: '#f2f2f2', margin: 0 }}>员工管理</Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalOpen(true)}>
           添加员工
         </Button>
@@ -101,13 +101,13 @@ export function AgentsPage() {
         <Row gutter={[16, 16]}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Col key={i} xs={24} sm={12} md={8} lg={6}>
-              <Card style={{ background: '#1f1f1f' }}><Skeleton active /></Card>
+              <Card style={{ background: '#101010' }}><Skeleton active /></Card>
             </Col>
           ))}
         </Row>
       ) : agents.length === 0 ? (
         <Empty
-          description={<span style={{ color: '#595959' }}>还没有员工，去<a href="/market" style={{ color: '#1890ff' }}>招聘市场</a>招募吧</span>}
+          description={<span style={{ color: '#595959' }}>还没有员工，去<a href="/market" style={{ color: '#00d992' }}>招聘市场</a>招募吧</span>}
         />
       ) : (
         <Row gutter={[16, 16]}>
@@ -121,7 +121,7 @@ export function AgentsPage() {
                 <Card
                   hoverable
                   style={{
-                    background: '#1f1f1f',
+                    background: '#101010',
                     borderTop: `3px solid ${roleInfo.color}`,
                   }}
                   actions={[
@@ -140,16 +140,16 @@ export function AgentsPage() {
                       cancelText="取消"
                       okButtonProps={{ danger: true }}
                     >
-                      <DeleteOutlined style={{ color: '#ff4d4f' }} />
+                      <DeleteOutlined style={{ color: '#fb565b' }} />
                     </Popconfirm>,
                   ]}
                 >
                   <div style={{ textAlign: 'center', marginBottom: 12 }}>
                     <div style={{ fontSize: 36, marginBottom: 4 }}>{roleInfo.icon}</div>
-                    <div style={{ fontWeight: 600, color: '#e8e8e8', fontSize: 15, marginBottom: 2 }}>
+                    <div style={{ fontWeight: 600, color: '#f2f2f2', fontSize: 15, marginBottom: 2 }}>
                       {agent.name}
                     </div>
-                    <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 8 }}>
+                    <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 8 }}>
                       {roleInfo.label} · {agent.model}
                     </div>
                     <Tag color={statusColor} style={{ margin: 0 }}>
@@ -157,18 +157,18 @@ export function AgentsPage() {
                     </Tag>
                   </div>
 
-                  <div style={{ borderTop: '1px solid #303030', paddingTop: 8, marginTop: 4 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#8c8c8c' }}>
+                  <div style={{ borderTop: '1px solid #3d3a39', paddingTop: 8, marginTop: 4 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#8b949e' }}>
                       <span>部门</span>
-                      <span style={{ color: '#bfbfbf' }}>{dept?.name || '未分配'}</span>
+                      <span style={{ color: '#b8b3b0' }}>{dept?.name || '未分配'}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#8b949e', marginTop: 4 }}>
                       <span>Token</span>
-                      <span style={{ color: '#bfbfbf' }}>{(agent.tokensUsed ?? 0) > 0 ? `${((agent.tokensUsed ?? 0) / 1000).toFixed(1)}k` : '0'}</span>
+                      <span style={{ color: '#b8b3b0' }}>{(agent.tokensUsed ?? 0) > 0 ? `${((agent.tokensUsed ?? 0) / 1000).toFixed(1)}k` : '0'}</span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#8c8c8c', marginTop: 4 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#8b949e', marginTop: 4 }}>
                       <span>费用</span>
-                      <span style={{ color: '#bfbfbf' }}>${(agent.totalCost ?? 0).toFixed(2)}</span>
+                      <span style={{ color: '#b8b3b0' }}>${(agent.totalCost ?? 0).toFixed(2)}</span>
                     </div>
                   </div>
                 </Card>
@@ -301,7 +301,7 @@ export function AgentsPage() {
               key: 'info',
               label: '基本信息',
               children: (
-                <Descriptions column={2} size="small" labelStyle={{ color: '#8c8c8c' }} contentStyle={{ color: '#e8e8e8' }}>
+                <Descriptions column={2} size="small" labelStyle={{ color: '#8b949e' }} contentStyle={{ color: '#f2f2f2' }}>
                   <Descriptions.Item label="状态">
                     <Tag color={AGENT_STATUS_COLORS[selectedAgent.status]}>
                       {AGENT_STATUS_LABELS[selectedAgent.status]}
@@ -313,7 +313,7 @@ export function AgentsPage() {
                   <Descriptions.Item label="模型">{selectedAgent.model}</Descriptions.Item>
                   <Descriptions.Item label="权限模式">{selectedAgent.permissionMode}</Descriptions.Item>
                   <Descriptions.Item label="工作目录" span={2}>
-                    <Text copyable style={{ color: '#bfbfbf', fontSize: 12 }}>{selectedAgent.cwd}</Text>
+                    <Text copyable style={{ color: '#b8b3b0', fontSize: 12 }}>{selectedAgent.cwd}</Text>
                   </Descriptions.Item>
                   <Descriptions.Item label="部门">
                     {departments.find(d => d.id === selectedAgent.departmentId)?.name || '未分配'}
@@ -325,14 +325,14 @@ export function AgentsPage() {
                     <Descriptions.Item label="可用工具" span={2}>
                       <Space size={4} wrap>
                         {selectedAgent.allowedTools.map(t => (
-                          <Tag key={t} style={{ fontSize: 11, background: '#303030', borderColor: '#404040' }}>{t}</Tag>
+                          <Tag key={t} style={{ fontSize: 11, background: 'rgba(61, 58, 57, 0.3)', borderColor: '#3d3a39' }}>{t}</Tag>
                         ))}
                       </Space>
                     </Descriptions.Item>
                   )}
                   {selectedAgent.customInstructions && (
                     <Descriptions.Item label="自定义指令" span={2}>
-                      <Text style={{ color: '#bfbfbf', fontSize: 12, whiteSpace: 'pre-wrap' }}>
+                      <Text style={{ color: '#b8b3b0', fontSize: 12, whiteSpace: 'pre-wrap' }}>
                         {selectedAgent.customInstructions}
                       </Text>
                     </Descriptions.Item>
@@ -397,7 +397,7 @@ function AgentEventsPanel({ agentId }: { agentId: string }) {
       key: 'createdAt',
       width: 150,
       render: (ts: number) => (
-        <span style={{ color: '#8c8c8c', fontSize: 12 }}>
+        <span style={{ color: '#8b949e', fontSize: 12 }}>
           {new Date(ts).toLocaleString('zh-CN')}
         </span>
       ),
@@ -409,14 +409,14 @@ function AgentEventsPanel({ agentId }: { agentId: string }) {
       width: 120,
       render: (type: string) => {
         const colorMap: Record<string, string> = {
-          tool_start: '#1890ff',
-          tool_result: '#52c41a',
-          output: '#bfbfbf',
-          error: '#ff4d4f',
-          status: '#faad14',
-          complete: '#52c41a',
+          tool_start: '#00d992',
+          tool_result: '#00d992',
+          output: '#b8b3b0',
+          error: '#fb565b',
+          status: '#ffba00',
+          complete: '#00d992',
         };
-        return <Tag color={colorMap[type] || '#8c8c8c'}>{type}</Tag>;
+        return <Tag color={colorMap[type] || '#8b949e'}>{type}</Tag>;
       },
     },
     {
@@ -432,7 +432,7 @@ function AgentEventsPanel({ agentId }: { agentId: string }) {
       key: 'textContent',
       ellipsis: true,
       render: (v: string | null) => (
-        <span style={{ color: '#bfbfbf', fontSize: 12 }}>{v || '-'}</span>
+        <span style={{ color: '#b8b3b0', fontSize: 12 }}>{v || '-'}</span>
       ),
     },
   ];

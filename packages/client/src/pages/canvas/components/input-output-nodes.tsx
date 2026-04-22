@@ -28,17 +28,17 @@ export const InputNode = memo(function InputNode({ id, data, selected }: NodePro
       padding: '10px 16px',
       borderRadius: 8,
       background: data.isExecuting ? '#1a2a14' : data.isCompleted ? '#0f1f0d' : '#1a2714',
-      border: `2px solid ${data.isExecuting ? '#73d13d' : data.isCompleted ? '#52c41a' : selected ? '#52c41a' : '#389e0d'}`,
+      border: `2px solid ${data.isExecuting ? '#73d13d' : data.isCompleted ? '#00d992' : selected ? '#00d992' : '#389e0d'}`,
       minWidth: 120,
-      boxShadow: data.isExecuting ? '0 0 16px #52c41a44' : 'none',
+      boxShadow: data.isExecuting ? '0 0 16px #00d99244' : 'none',
       transition: 'border-color 0.3s, box-shadow 0.3s',
     }}>
-      <Handle type="source" position={Position.Bottom} style={{ background: '#52c41a', width: 8, height: 8 }} />
+      <Handle type="source" position={Position.Bottom} style={{ background: '#00d992', width: 8, height: 8 }} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
         <span style={{ fontWeight: 600, color: '#95de64', fontSize: 13 }}>
           📥 {data.label}
         </span>
-        {status.icon && <span style={{ color: data.isCompleted ? '#52c41a' : '#73d13d' }}>{status.icon}</span>}
+        {status.icon && <span style={{ color: data.isCompleted ? '#00d992' : '#73d13d' }}>{status.icon}</span>}
       </div>
       {data.prompt && (
         <div style={{ fontSize: 11, color: '#73d13d', marginTop: 4, opacity: 0.8 }}>
@@ -67,22 +67,22 @@ export const OutputNode = memo(function OutputNode({ id, data, selected }: NodeP
       padding: '10px 16px',
       borderRadius: 8,
       background: data.isExecuting ? '#2a121a' : data.isCompleted ? '#1f0f12' : '#2a1215',
-      border: `2px solid ${data.isExecuting ? '#ff7875' : data.isCompleted ? '#52c41a' : selected ? '#ff4d4f' : '#cf1322'}`,
+      border: `2px solid ${data.isExecuting ? '#ff7875' : data.isCompleted ? '#00d992' : selected ? '#fb565b' : '#cf1322'}`,
       minWidth: 120,
-      boxShadow: data.isExecuting ? '0 0 16px #ff4d4f44' : 'none',
+      boxShadow: data.isExecuting ? '0 0 16px #fb565b44' : 'none',
       transition: 'border-color 0.3s, box-shadow 0.3s',
     }}>
-      <Handle type="target" position={Position.Top} style={{ background: '#ff4d4f', width: 8, height: 8 }} />
+      <Handle type="target" position={Position.Top} style={{ background: '#fb565b', width: 8, height: 8 }} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
         <span style={{ fontWeight: 600, color: '#ff7875', fontSize: 13 }}>
           📤 {data.label}
         </span>
-        {status.icon && <span style={{ color: data.isCompleted ? '#52c41a' : '#ff7875' }}>{status.icon}</span>}
+        {status.icon && <span style={{ color: data.isCompleted ? '#00d992' : '#ff7875' }}>{status.icon}</span>}
       </div>
       {data.isCompleted && data.result && (
         <div style={{
           fontSize: 11,
-          color: '#52c41a',
+          color: '#00d992',
           marginTop: 4,
           padding: '4px 6px',
           background: '#0f1f0d',
@@ -117,20 +117,20 @@ export const RouterNode = memo(function RouterNode({ id, data, selected }: NodeP
       padding: '10px 16px',
       borderRadius: 8,
       background: data.isExecuting ? '#141a2a' : data.isCompleted ? '#0d0f1f' : '#141a27',
-      border: `2px solid ${data.isExecuting ? '#4096ff' : data.isCompleted ? '#52c41a' : selected ? '#1890ff' : '#0958d9'}`,
+      border: `2px solid ${data.isExecuting ? '#4096ff' : data.isCompleted ? '#00d992' : selected ? '#00d992' : '#0958d9'}`,
       minWidth: 120,
-      boxShadow: data.isExecuting ? '0 0 16px #1890ff44' : 'none',
+      boxShadow: data.isExecuting ? '0 0 16px #00d99244' : 'none',
       transition: 'border-color 0.3s, box-shadow 0.3s',
     }}>
-      <Handle type="target" position={Position.Top} style={{ background: '#1890ff', width: 8, height: 8 }} />
+      <Handle type="target" position={Position.Top} style={{ background: '#00d992', width: 8, height: 8 }} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
         <span style={{ fontWeight: 600, color: '#69b1ff', fontSize: 13 }}>
           🔀 {data.label}
         </span>
-        {status.icon && <span style={{ color: data.isCompleted ? '#52c41a' : '#69b1ff' }}>{status.icon}</span>}
+        {status.icon && <span style={{ color: data.isCompleted ? '#00d992' : '#69b1ff' }}>{status.icon}</span>}
       </div>
-      <Handle type="source" position={Position.Bottom} id="a" style={{ background: '#1890ff', width: 8, height: 8, left: '30%' }} />
-      <Handle type="source" position={Position.Bottom} id="b" style={{ background: '#1890ff', width: 8, height: 8, left: '70%' }} />
+      <Handle type="source" position={Position.Bottom} id="a" style={{ background: '#00d992', width: 8, height: 8, left: '30%' }} />
+      <Handle type="source" position={Position.Bottom} id="b" style={{ background: '#00d992', width: 8, height: 8, left: '70%' }} />
     </div>
     </>
   );
@@ -153,7 +153,7 @@ export const AggregatorNode = memo(function AggregatorNode({ id, data, selected 
       padding: '10px 16px',
       borderRadius: 8,
       background: data.isExecuting ? '#1f1427' : data.isCompleted ? '#140d1f' : '#1f1a27',
-      border: `2px solid ${data.isExecuting ? '#b37feb' : data.isCompleted ? '#52c41a' : selected ? '#8b5cf6' : '#6d28d9'}`,
+      border: `2px solid ${data.isExecuting ? '#b37feb' : data.isCompleted ? '#00d992' : selected ? '#8b5cf6' : '#6d28d9'}`,
       minWidth: 120,
       boxShadow: data.isExecuting ? '0 0 16px #8b5cf644' : 'none',
       transition: 'border-color 0.3s, box-shadow 0.3s',
@@ -164,7 +164,7 @@ export const AggregatorNode = memo(function AggregatorNode({ id, data, selected 
         <span style={{ fontWeight: 600, color: '#b37feb', fontSize: 13 }}>
           🔗 {data.label}
         </span>
-        {status.icon && <span style={{ color: data.isCompleted ? '#52c41a' : '#b37feb' }}>{status.icon}</span>}
+        {status.icon && <span style={{ color: data.isCompleted ? '#00d992' : '#b37feb' }}>{status.icon}</span>}
       </div>
       <Handle type="source" position={Position.Bottom} style={{ background: '#8b5cf6', width: 8, height: 8 }} />
     </div>

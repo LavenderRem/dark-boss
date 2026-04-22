@@ -27,10 +27,10 @@ const NODE_TYPE_META: Record<string, { icon: React.ReactNode; label: string }> =
 
 // 状态配置
 const STATUS_CONFIG: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
-  running: { color: '#1890ff', icon: <LoadingOutlined spin />, label: '运行中' },
-  completed: { color: '#52c41a', icon: <CheckCircleOutlined />, label: '已完成' },
-  failed: { color: '#ff4d4f', icon: <CloseCircleOutlined />, label: '失败' },
-  pending: { color: '#8c8c8c', icon: <ClockCircleOutlined />, label: '等待中' },
+  running: { color: '#00d992', icon: <LoadingOutlined spin />, label: '运行中' },
+  completed: { color: '#00d992', icon: <CheckCircleOutlined />, label: '已完成' },
+  failed: { color: '#fb565b', icon: <CloseCircleOutlined />, label: '失败' },
+  pending: { color: '#8b949e', icon: <ClockCircleOutlined />, label: '等待中' },
   skipped: { color: '#595959', icon: <ClockCircleOutlined />, label: '已跳过' },
 };
 
@@ -67,31 +67,31 @@ function LogDetail({ log }: { log: ExecutionLogEntry }) {
     items.push({
       key: 'input',
       label: '输入',
-      content: <pre style={{ margin: 0, fontSize: 11, color: '#bfbfbf', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{log.inputPreview}</pre>,
+      content: <pre style={{ margin: 0, fontSize: 11, color: '#b8b3b0', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{log.inputPreview}</pre>,
     });
   }
   if (log.outputPreview) {
     items.push({
       key: 'output',
       label: '输出',
-      content: <pre style={{ margin: 0, fontSize: 11, color: '#e8e8e8', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{log.outputPreview}</pre>,
+      content: <pre style={{ margin: 0, fontSize: 11, color: '#f2f2f2', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{log.outputPreview}</pre>,
     });
   }
   if (log.error) {
     items.push({
       key: 'error',
       label: '错误',
-      content: <pre style={{ margin: 0, fontSize: 11, color: '#ff4d4f', whiteSpace: 'pre-wrap' }}>{log.error}</pre>,
+      content: <pre style={{ margin: 0, fontSize: 11, color: '#fb565b', whiteSpace: 'pre-wrap' }}>{log.error}</pre>,
     });
   }
   if (items.length === 0) return null;
 
   return (
-    <div style={{ marginTop: 4, paddingLeft: 4, borderLeft: '2px solid #303030' }}>
+    <div style={{ marginTop: 4, paddingLeft: 4, borderLeft: '2px solid #3d3a39' }}>
       {items.map(item => (
         <div key={item.key} style={{ marginBottom: 4 }}>
-          <Text style={{ fontSize: 11, color: '#8c8c8c' }}>{item.label}：</Text>
-          <div style={{ background: '#1a1a1a', borderRadius: 4, padding: '4px 8px', marginTop: 2 }}>
+          <Text style={{ fontSize: 11, color: '#8b949e' }}>{item.label}：</Text>
+          <div style={{ background: '#0a0a0c', borderRadius: 4, padding: '4px 8px', marginTop: 2 }}>
             {item.content}
           </div>
         </div>
@@ -204,23 +204,23 @@ export function ExecutionLogPanel() {
       open={showLogPanel}
       onClose={() => setShowLogPanel(false)}
       styles={{
-        header: { background: '#1a1a1a', borderBottom: '1px solid #303030', padding: '8px 16px' },
-        body: { background: '#141414', padding: 12, overflow: 'auto' },
+        header: { background: '#0a0a0c', borderBottom: '1px solid #3d3a39', padding: '8px 16px' },
+        body: { background: '#0a0a0c', padding: 12, overflow: 'auto' },
       }}
       extra={
         executionLogs.length > 0 && (
           <Space size={16} style={{ fontSize: 12 }}>
             <Tooltip title="总耗时">
-              <Text style={{ color: '#8c8c8c' }}>⏱ {formatDuration(totalDuration)}</Text>
+              <Text style={{ color: '#8b949e' }}>⏱ {formatDuration(totalDuration)}</Text>
             </Tooltip>
             {totalTokens > 0 && (
               <Tooltip title="总 Token">
-                <Text style={{ color: '#8c8c8c' }}>🔤 {totalTokens.toLocaleString()}</Text>
+                <Text style={{ color: '#8b949e' }}>🔤 {totalTokens.toLocaleString()}</Text>
               </Tooltip>
             )}
             {totalCost > 0 && (
               <Tooltip title="总费用">
-                <Text style={{ color: '#8c8c8c' }}>💰 {formatCost(totalCost)}</Text>
+                <Text style={{ color: '#8b949e' }}>💰 {formatCost(totalCost)}</Text>
               </Tooltip>
             )}
           </Space>
@@ -245,22 +245,22 @@ export function ExecutionLogPanel() {
                 <div style={{ marginBottom: 4 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span style={{ fontSize: 13 }}>{typeMeta.icon}</span>
-                    <Text strong style={{ color: '#e8e8e8', fontSize: 13 }}>{label}</Text>
+                    <Text strong style={{ color: '#f2f2f2', fontSize: 13 }}>{label}</Text>
                     <Tag
                       icon={statusCfg.icon}
-                      color={statusCfg.color === '#52c41a' ? 'success' : statusCfg.color === '#1890ff' ? 'processing' : statusCfg.color === '#ff4d4f' ? 'error' : 'default'}
+                      color={statusCfg.color === '#00d992' ? 'success' : statusCfg.color === '#00d992' ? 'processing' : statusCfg.color === '#fb565b' ? 'error' : 'default'}
                       style={{ fontSize: 11, margin: 0, lineHeight: '18px', padding: '0 4px' }}
                     >
                       {statusCfg.label}
                     </Tag>
                     {log.durationMs !== undefined && (
-                      <Text style={{ fontSize: 11, color: '#8c8c8c' }}>{formatDuration(log.durationMs)}</Text>
+                      <Text style={{ fontSize: 11, color: '#8b949e' }}>{formatDuration(log.durationMs)}</Text>
                     )}
                     {log.tokensUsed !== undefined && log.tokensUsed > 0 && (
-                      <Text style={{ fontSize: 11, color: '#8c8c8c' }}>{log.tokensUsed.toLocaleString()} tokens</Text>
+                      <Text style={{ fontSize: 11, color: '#8b949e' }}>{log.tokensUsed.toLocaleString()} tokens</Text>
                     )}
                     {log.cost !== undefined && log.cost > 0 && (
-                      <Text style={{ fontSize: 11, color: '#faad14' }}>{formatCost(log.cost)}</Text>
+                      <Text style={{ fontSize: 11, color: '#ffba00' }}>{formatCost(log.cost)}</Text>
                     )}
                   </div>
                   <LogDetail log={log} />

@@ -38,8 +38,8 @@ interface ChatMessage {
 }
 
 const CHANNEL_TYPE_MAP: Record<string, { icon: React.ReactNode; color: string }> = {
-  team: { icon: <TeamOutlined />, color: '#1890ff' },
-  direct: { icon: <UserOutlined />, color: '#52c41a' },
+  team: { icon: <TeamOutlined />, color: '#00d992' },
+  direct: { icon: <UserOutlined />, color: '#00d992' },
   department: { icon: <MessageOutlined />, color: '#722ed1' },
 };
 
@@ -246,7 +246,7 @@ export function ChatPage() {
         title={
           <Space>
             <MessageOutlined />
-            <span style={{ color: '#e8e8e8' }}>频道</span>
+            <span style={{ color: '#f2f2f2' }}>频道</span>
           </Space>
         }
         extra={
@@ -254,7 +254,7 @@ export function ChatPage() {
             新建
           </Button>
         }
-        style={{ width: 280, background: '#1f1f1f', flexShrink: 0 }}
+        style={{ width: 280, background: '#101010', flexShrink: 0 }}
         styles={{ body: { padding: '4px 0', overflow: 'auto', maxHeight: 'calc(100vh - 180px)' } }}
       >
         {channels.length === 0 ? (
@@ -272,14 +272,14 @@ export function ChatPage() {
                 style={{
                   padding: '10px 16px',
                   cursor: 'pointer',
-                  background: isActive ? '#1890ff22' : 'transparent',
-                  borderRight: isActive ? '2px solid #1890ff' : '2px solid transparent',
+                  background: isActive ? '#00d99222' : 'transparent',
+                  borderRight: isActive ? '2px solid #00d992' : '2px solid transparent',
                   transition: 'background 0.2s',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ color: typeInfo.color }}>{typeInfo.icon}</span>
-                  <Text style={{ color: isActive ? '#e8e8e8' : '#bfbfbf', fontWeight: isActive ? 600 : 400 }}>
+                  <Text style={{ color: isActive ? '#f2f2f2' : '#b8b3b0', fontWeight: isActive ? 600 : 400 }}>
                     {channel.name}
                   </Text>
                 </div>
@@ -296,7 +296,7 @@ export function ChatPage() {
 
       {/* 右侧：聊天区域 */}
       <Card
-        style={{ flex: 1, background: '#1f1f1f', display: 'flex', flexDirection: 'column' }}
+        style={{ flex: 1, background: '#101010', display: 'flex', flexDirection: 'column' }}
         styles={{ body: { padding: 0, display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' } }}
       >
         {selectedChannel ? (
@@ -304,7 +304,7 @@ export function ChatPage() {
             {/* 频道头部 */}
             <div style={{
               padding: '12px 20px',
-              borderBottom: '1px solid #303030',
+              borderBottom: '1px solid #3d3a39',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -313,11 +313,11 @@ export function ChatPage() {
                 <span style={{ color: CHANNEL_TYPE_MAP[currentChannel?.type || 'team'].color }}>
                   {CHANNEL_TYPE_MAP[currentChannel?.type || 'team'].icon}
                 </span>
-                <Title level={5} style={{ color: '#e8e8e8', margin: 0 }}>{currentChannel?.name}</Title>
+                <Title level={5} style={{ color: '#f2f2f2', margin: 0 }}>{currentChannel?.name}</Title>
               </Space>
               <Space>
                 {channelParticipants.length > 0 && (
-                  <Text style={{ color: '#8c8c8c', fontSize: 12 }}>
+                  <Text style={{ color: '#8b949e', fontSize: 12 }}>
                     {channelParticipants.map(a => a.name).join(', ')}
                   </Text>
                 )}
@@ -362,7 +362,7 @@ export function ChatPage() {
                       <Avatar
                         size={36}
                         style={{
-                          background: isUser ? '#1890ff' : (roleInfo?.color || '#52c41a'),
+                          background: isUser ? '#00d992' : (roleInfo?.color || '#00d992'),
                           flexShrink: 0,
                         }}
                         icon={isUser ? <UserOutlined /> : <RobotOutlined />}
@@ -377,16 +377,16 @@ export function ChatPage() {
                           marginBottom: 4,
                           flexDirection: isUser ? 'row-reverse' : 'row',
                         }}>
-                          <Text style={{ color: '#bfbfbf', fontSize: 13, fontWeight: 500 }}>
+                          <Text style={{ color: '#b8b3b0', fontSize: 13, fontWeight: 500 }}>
                             {isUser ? '你' : senderAgent?.name || '未知'}
                           </Text>
                           <Text style={{ color: '#595959', fontSize: 11 }}>{formatTime(msg.createdAt)}</Text>
                         </div>
                         <div style={{
-                          background: isUser ? '#1890ff22' : '#2a2a2a',
+                          background: isUser ? '#00d99222' : '#2a2a2a',
                           borderRadius: 8,
                           padding: '8px 14px',
-                          color: '#e8e8e8',
+                          color: '#f2f2f2',
                           fontSize: 14,
                           lineHeight: 1.6,
                           wordBreak: 'break-word',
@@ -415,7 +415,7 @@ export function ChatPage() {
             {/* 输入区域 */}
             <div style={{
               padding: '12px 20px',
-              borderTop: '1px solid #303030',
+              borderTop: '1px solid #3d3a39',
               display: 'flex',
               gap: 8,
               alignItems: 'flex-end',
@@ -431,7 +431,7 @@ export function ChatPage() {
                 }}
                 placeholder="输入消息，@员工名 提及...（Shift+Enter 换行）"
                 autoSize={{ minRows: 1, maxRows: 4 }}
-                style={{ background: '#2a2a2a', color: '#e8e8e8', borderColor: '#303030' }}
+                style={{ background: '#2a2a2a', color: '#f2f2f2', borderColor: '#3d3a39' }}
               />
               <Button
                 type="primary"
@@ -446,7 +446,7 @@ export function ChatPage() {
         ) : (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Empty
-              image={<MessageOutlined style={{ fontSize: 48, color: '#303030' }} />}
+              image={<MessageOutlined style={{ fontSize: 48, color: '#3d3a39' }} />}
               description={<span style={{ color: '#595959' }}>选择一个频道开始聊天</span>}
             />
           </div>

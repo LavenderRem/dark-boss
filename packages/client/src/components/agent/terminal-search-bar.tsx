@@ -92,8 +92,8 @@ export function TerminalSearchBar({ searchAddon, onClose }: TerminalSearchBarPro
         top: 8,
         right: 8,
         zIndex: 10,
-        background: '#1a1a2e',
-        border: '1px solid #303030',
+        background: '#050507',
+        border: '1px solid #3d3a39',
         borderRadius: 6,
         padding: '4px 8px',
         display: 'flex',
@@ -111,14 +111,14 @@ export function TerminalSearchBar({ searchAddon, onClose }: TerminalSearchBarPro
         placeholder="搜索终端..."
         style={{
           width: 180,
-          background: '#0d1117',
-          borderColor: '#303030',
-          color: '#e8e8e8',
+          background: '#050507',
+          borderColor: '#3d3a39',
+          color: '#f2f2f2',
           fontSize: 12,
         }}
         prefix={<SearchOutlined style={{ color: '#595959' }} />}
       />
-      <span style={{ color: '#8c8c8c', fontSize: 11, minWidth: 50, textAlign: 'center' }}>
+      <span style={{ color: '#8b949e', fontSize: 11, minWidth: 50, textAlign: 'center' }}>
         {results.resultCount > 0
           ? `${results.resultIndex + 1}/${results.resultCount}`
           : query ? '无匹配' : ''}
@@ -130,7 +130,7 @@ export function TerminalSearchBar({ searchAddon, onClose }: TerminalSearchBarPro
           icon={<UpOutlined />}
           onClick={handleFindPrevious}
           disabled={!query || results.resultCount === 0}
-          style={{ color: '#bfbfbf' }}
+          style={{ color: '#b8b3b0' }}
         />
         <Button
           size="small"
@@ -138,14 +138,14 @@ export function TerminalSearchBar({ searchAddon, onClose }: TerminalSearchBarPro
           icon={<DownOutlined />}
           onClick={handleFindNext}
           disabled={!query || results.resultCount === 0}
-          style={{ color: '#bfbfbf' }}
+          style={{ color: '#b8b3b0' }}
         />
         <Button
           size="small"
           type="text"
           icon={<CloseOutlined />}
           onClick={onClose}
-          style={{ color: '#8c8c8c' }}
+          style={{ color: '#8b949e' }}
         />
       </Space>
     </div>

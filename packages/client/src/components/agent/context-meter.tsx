@@ -37,9 +37,9 @@ export function ContextMeter({ agentId, size = 40, showLabel = true }: ContextMe
 
   // 环形进度条颜色
   const colors: Record<string, { stroke: string; bg: string; text: string }> = {
-    green: { stroke: '#52c41a', bg: '#1a3a1a', text: '#52c41a' },
-    yellow: { stroke: '#faad14', bg: '#3a3a1a', text: '#faad14' },
-    red: { stroke: '#ff4d4f', bg: '#3a1a1a', text: '#ff4d4f' },
+    green: { stroke: '#00d992', bg: 'rgba(0, 217, 146, 0.15)', text: '#00d992' },
+    yellow: { stroke: '#ffba00', bg: 'rgba(255, 186, 0, 0.15)', text: '#ffba00' },
+    red: { stroke: '#fb565b', bg: 'rgba(251, 86, 91, 0.15)', text: '#fb565b' },
   };
 
   const color = colors[status];

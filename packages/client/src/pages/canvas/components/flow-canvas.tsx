@@ -326,15 +326,15 @@ export function FlowCanvas({ onBackToList, onSave, onRun, onViewResult, onToggle
             snapToGrid
             snapGrid={[16, 16]}
             defaultEdgeOptions={{ type: 'data' }}
-            style={{ background: '#0d0d0d' }}
+            style={{ background: '#050507' }}
             proOptions={{ hideAttribution: true }}
           >
-            <Background color="#1a1a2e" gap={20} />
+            <Background color="#050507" gap={20} />
             <Controls
-              style={{ background: '#1f1f1f', borderRadius: 6, border: '1px solid #303030' }}
+              style={{ background: '#101010', borderRadius: 6, border: '1px solid #3d3a39' }}
             />
             <MiniMap
-              style={{ background: '#1a1a1a', border: '1px solid #303030' }}
+              style={{ background: '#0a0a0c', border: '1px solid #3d3a39' }}
               nodeColor={(n) => {
                 const data = n.data as Record<string, string>;
                 if (data?.agentRole) {

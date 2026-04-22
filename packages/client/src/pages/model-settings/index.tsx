@@ -280,7 +280,7 @@ export function ModelSettingsPage() {
             >
               <Space direction="vertical" style={{ width: '100%' }} size="small">
                 <div>
-                  <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 4 }}>Base URL</div>
+                  <div style={{ color: '#8b949e', fontSize: 12, marginBottom: 4 }}>Base URL</div>
                   <Input
                     size="small"
                     defaultValue={provider.baseUrl}
@@ -293,7 +293,7 @@ export function ModelSettingsPage() {
                   />
                 </div>
                 <div>
-                  <div style={{ color: '#8c8c8c', fontSize: 12, marginBottom: 4 }}>API Key</div>
+                  <div style={{ color: '#8b949e', fontSize: 12, marginBottom: 4 }}>API Key</div>
                   <Input
                     size="small"
                     type={visibleKeys[provider.id] ? 'text' : 'password'}
