@@ -1,0 +1,269 @@
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #050507 0%, #040a08 40%, #050507 100%);
+  overflow: hidden;
+}
+
+/* === 粒子背景 === */
+
+.hero-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero-particle {
+  position: absolute;
+  background: #00d992;
+  border-radius: 50%;
+  animation: particleFloat var(--float-duration, 6s) ease-in-out infinite;
+  animation-delay: var(--float-delay, 0s);
+}
+
+.hero-grid-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 217, 146, 0.08), transparent);
+  animation: gridPulse 8s ease-in-out infinite;
+}
+
+@keyframes particleFloat {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.5; }
+  25% { opacity: 0.8; }
+  50% { transform: translateY(-30px) translateX(12px); opacity: 0.6; }
+  75% { opacity: 0.9; }
+}
+
+@keyframes gridPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* === 内容入场动画 === */
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 0 40px;
+  animation: fadeInUp 0.8s ease-out both;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border: 1px solid #3d3a39;
+  border-radius: 9999px;
+  background: #101010;
+  margin-bottom: 28px;
+  animation: fadeInUp 0.6s ease-out 0.1s both;
+}
+
+.hero-badge-dot {
+  width: 6px;
+  height: 6px;
+  background: #00d992;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #00d992;
+  animation: dotPulse 2s ease-in-out infinite;
+}
+
+.hero-badge-text {
+  color: #b8b3b0;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.hero-title {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 52px;
+  font-weight: 700;
+  color: #f2f2f2;
+  line-height: 1.15;
+  letter-spacing: -1px;
+  margin: 0 0 16px;
+  animation: fadeInUp 0.7s ease-out 0.2s both;
+}
+
+.hero-title-accent {
+  position: relative;
+  color: #00d992;
+}
+
+.hero-title-underline {
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 8px;
+}
+
+.hero-subtitle {
+  color: #b8b3b0;
+  font-size: 18px;
+  line-height: 1.6;
+  max-width: 520px;
+  margin: 0 auto 36px;
+  animation: fadeInUp 0.7s ease-out 0.35s both;
+}
+
+.hero-cta-group {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  margin-bottom: 48px;
+  animation: fadeInUp 0.7s ease-out 0.5s both;
+}
+
+/* === CTA 按钮呼吸光效 === */
+
+.hero-cta-primary {
+  background: #00d992;
+  color: #050507;
+  padding: 14px 36px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.hero-cta-primary::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 8px;
+  background: #00d992;
+  opacity: 0;
+  z-index: -1;
+  animation: ctaGlow 2.5s ease-in-out infinite;
+}
+
+.hero-cta-primary:hover {
+  background: #00ffaa;
+  transform: translateY(-1px);
+}
+
+.hero-cta-secondary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 36px;
+  border: 1px solid #3d3a39;
+  border-radius: 6px;
+  color: #f2f2f2;
+  font-size: 15px;
+  text-decoration: none;
+  background: transparent;
+  transition: all 0.3s;
+}
+
+.hero-cta-secondary:hover {
+  border-color: #8b949e;
+  transform: translateY(-1px);
+}
+
+/* === 统计行 === */
+
+.hero-stats {
+  display: flex;
+  gap: 40px;
+  justify-content: center;
+  animation: fadeInUp 0.7s ease-out 0.65s both;
+}
+
+.hero-stat-value {
+  color: #00d992;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.hero-stat-label {
+  color: #8b949e;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+/* === 滚动指示器 === */
+
+.hero-scroll-indicator {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #8b949e;
+  font-size: 11px;
+  letter-spacing: 1px;
+  animation: fadeInUp 0.6s ease-out 0.9s both;
+}
+
+.hero-scroll-line {
+  width: 1px;
+  height: 20px;
+  background: linear-gradient(to bottom, #3d3a39, transparent);
+  animation: scrollBounce 2s ease-in-out infinite;
+}
+
+/* === 关键帧 === */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dotPulse {
+  0%, 100% { box-shadow: 0 0 4px #00d992; }
+  50% { box-shadow: 0 0 12px #00d992; }
+}
+
+@keyframes ctaGlow {
+  0%, 100% { opacity: 0; transform: scale(1); }
+  50% { opacity: 0.15; transform: scale(1.02); }
+}
+
+@keyframes scrollBounce {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(6px); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-particles,
+  .hero-scroll-line,
+  .hero-badge-dot,
+  .hero-cta-primary::after {
+    animation: none;
+  }
+  .hero-content,
+  .hero-badge,
+  .hero-title,
+  .hero-subtitle,
+  .hero-cta-group,
+  .hero-stats,
+  .hero-scroll-indicator {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

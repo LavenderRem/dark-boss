@@ -1,0 +1,221 @@
+.workflow {
+  padding: 80px 40px;
+  background: #050507;
+  position: relative;
+}
+
+.workflow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 217, 146, 0.2), transparent);
+}
+
+.workflow-header {
+  text-align: center;
+  margin-bottom: 48px;
+  animation: fadeInUp 0.6s ease-out both;
+}
+
+/* 加宽：800px → 1000px */
+.workflow-steps {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.workflow-step-wrapper {
+  display: flex;
+  align-items: flex-start;
+  flex: 1;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 0.6s ease-out both;
+}
+
+.workflow-step-wrapper:nth-child(1) { animation-delay: 0.15s; }
+.workflow-step-wrapper:nth-child(3) { animation-delay: 0.3s; }
+.workflow-step-wrapper:nth-child(5) { animation-delay: 0.45s; }
+
+.workflow-step {
+  flex: 1;
+  text-align: center;
+}
+
+.workflow-step-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  background: #101010;
+  border: 2px solid #3d3a39;
+  border-radius: 12px;
+  color: #8b949e;
+  margin-bottom: 20px;
+  transition: all 0.4s ease;
+}
+
+.workflow-step-icon.active {
+  border-color: #00d992;
+  color: #00d992;
+  box-shadow: 0 0 20px rgba(0, 217, 146, 0.12);
+}
+
+.workflow-step-number {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  background: #3d3a39;
+  color: #f2f2f2;
+}
+
+.workflow-step-number.active {
+  background: #00d992;
+  color: #050507;
+}
+
+.workflow-step-title {
+  color: #8b949e;
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 8px;
+  transition: color 0.4s;
+}
+
+.workflow-step-title.active {
+  color: #f2f2f2;
+}
+
+.workflow-step-desc {
+  color: #595959;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 240px;
+  margin-left: auto;
+  margin-right: auto;
+  transition: color 0.4s;
+}
+
+.workflow-step-desc.active {
+  color: #8b949e;
+}
+
+/* 连接线 */
+.workflow-connector {
+  display: flex;
+  align-items: center;
+  padding-top: 38px;
+  width: 80px;
+  flex-shrink: 0;
+  opacity: 0;
+  animation: fadeIn 0.4s ease-out 0.6s both;
+}
+
+.workflow-connector-line {
+  flex: 1;
+  height: 2px;
+  background: #3d3a39;
+  position: relative;
+  transition: background 0.3s;
+}
+
+.workflow-connector-line.gradient {
+  background: linear-gradient(90deg, #00d992, #3d3a39);
+}
+
+.workflow-connector-arrow {
+  position: absolute;
+  right: -3px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #3d3a39;
+  border-bottom: 2px solid #3d3a39;
+  transform: rotate(-45deg);
+}
+
+/* 底部 CTA */
+.workflow-cta {
+  text-align: center;
+  margin-top: 56px;
+  padding-top: 36px;
+  border-top: 1px solid rgba(61, 58, 57, 0.13);
+  animation: fadeInUp 0.6s ease-out 0.7s both;
+}
+
+.workflow-cta-button {
+  background: #00d992;
+  color: #050507;
+  padding: 14px 44px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.workflow-cta-button::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 8px;
+  background: #00d992;
+  opacity: 0;
+  z-index: -1;
+  animation: ctaGlow 2.5s ease-in-out infinite;
+}
+
+.workflow-cta-button:hover {
+  background: #00ffaa;
+  transform: translateY(-1px);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ctaGlow {
+  0%, 100% { opacity: 0; transform: scale(1); }
+  50% { opacity: 0.15; transform: scale(1.02); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workflow-step-wrapper,
+  .workflow-connector,
+  .workflow-cta,
+  .workflow-header {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

@@ -1,0 +1,120 @@
+.features {
+  padding: 80px 40px;
+  background: #080808;
+  border-top: 1px solid #3d3a39;
+  border-bottom: 1px solid #3d3a39;
+  position: relative;
+}
+
+.features-header {
+  text-align: center;
+  margin-bottom: 48px;
+  animation: fadeInUp 0.6s ease-out both;
+}
+
+.section-label {
+  display: block;
+  color: #00d992;
+  font-size: 12px;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  color: #f2f2f2;
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 12px;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+.section-subtitle {
+  color: #8b949e;
+  font-size: 15px;
+  max-width: 440px;
+  margin: 0 auto;
+}
+
+/* 加宽：700px → 960px */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.feature-card {
+  background: #101010;
+  border: 1px solid #3d3a39;
+  border-radius: 8px;
+  padding: 28px;
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 0.6s ease-out both;
+}
+
+.feature-card:nth-child(1) { animation-delay: 0.1s; }
+.feature-card:nth-child(2) { animation-delay: 0.2s; }
+.feature-card:nth-child(3) { animation-delay: 0.3s; }
+.feature-card:nth-child(4) { animation-delay: 0.4s; }
+
+.feature-card:hover {
+  border-color: #00d992;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 24px rgba(0, 217, 146, 0.08);
+}
+
+.feature-icon {
+  width: 44px;
+  height: 44px;
+  background: #0a0a0c;
+  border: 1px solid #3d3a39;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  color: #00d992;
+  transition: all 0.3s;
+}
+
+.feature-card:hover .feature-icon {
+  border-color: #00d992;
+  box-shadow: 0 0 12px rgba(0, 217, 146, 0.15);
+}
+
+.feature-card-title {
+  color: #f2f2f2;
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+
+.feature-card-desc {
+  color: #8b949e;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-card,
+  .features-header {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

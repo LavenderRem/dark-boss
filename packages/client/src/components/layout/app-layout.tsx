@@ -20,15 +20,15 @@ import { ContextMeter } from '../agent/context-meter.js';
 const { Sider, Header, Content } = Layout;
 
 const menuItems = [
-  { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
-  { key: '/agents', icon: <TeamOutlined />, label: '员工管理' },
-  { key: '/canvas', icon: <ApartmentOutlined />, label: '工作流画布' },
-  { key: '/org-chart', icon: <CodeOutlined />, label: '组织架构' },
-  { key: '/kanban', icon: <ProjectOutlined />, label: '协作看板' },
-  { key: '/chat', icon: <MessageOutlined />, label: '团队群聊' },
-  { key: '/market', icon: <ShopOutlined />, label: '招聘市场' },
-  { key: '/performance', icon: <BarChartOutlined />, label: '绩效考核' },
-  { key: '/model-settings', icon: <SettingOutlined />, label: '模型设置' },
+  { key: '/app', icon: <DashboardOutlined />, label: '仪表盘' },
+  { key: '/app/agents', icon: <TeamOutlined />, label: '员工管理' },
+  { key: '/app/canvas', icon: <ApartmentOutlined />, label: '工作流画布' },
+  { key: '/app/org-chart', icon: <CodeOutlined />, label: '组织架构' },
+  { key: '/app/kanban', icon: <ProjectOutlined />, label: '协作看板' },
+  { key: '/app/chat', icon: <MessageOutlined />, label: '团队群聊' },
+  { key: '/app/market', icon: <ShopOutlined />, label: '招聘市场' },
+  { key: '/app/performance', icon: <BarChartOutlined />, label: '绩效考核' },
+  { key: '/app/model-settings', icon: <SettingOutlined />, label: '模型设置' },
 ];
 
 export function AppLayout() {
@@ -46,7 +46,7 @@ export function AppLayout() {
   const workingAgent = agents.find(a => a.status === 'working');
 
   return (
-    <Layout style={{ height: '100vh' }}>
+    <Layout style={{ height: '100vh', overflow: 'hidden' }}>
       <Sider
         width={200}
         collapsible

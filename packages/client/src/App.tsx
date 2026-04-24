@@ -9,22 +9,24 @@ import { ChatPage } from './pages/chat/index.js';
 import { MarketPage } from './pages/market/index.js';
 import { PerformancePage } from './pages/performance/index.js';
 import { ModelSettingsPage } from './pages/model-settings/index.js';
+import { LandingPage } from './pages/landing/index.js';
 
 export default function App() {
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
       <Route element={<AppLayout />}>
-        <Route path="/" element={<DashboardPage />} />
-        <Route path="/agents" element={<AgentsPage />} />
-        <Route path="/canvas" element={<CanvasPage />} />
-        <Route path="/org-chart" element={<OrgChartPage />} />
-        <Route path="/kanban" element={<KanbanPage />} />
-        <Route path="/chat" element={<ChatPage />} />
-        <Route path="/market" element={<MarketPage />} />
-        <Route path="/performance" element={<PerformancePage />} />
-        <Route path="/model-settings" element={<ModelSettingsPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/app" element={<DashboardPage />} />
+        <Route path="/app/agents" element={<AgentsPage />} />
+        <Route path="/app/canvas" element={<CanvasPage />} />
+        <Route path="/app/org-chart" element={<OrgChartPage />} />
+        <Route path="/app/kanban" element={<KanbanPage />} />
+        <Route path="/app/chat" element={<ChatPage />} />
+        <Route path="/app/market" element={<MarketPage />} />
+        <Route path="/app/performance" element={<PerformancePage />} />
+        <Route path="/app/model-settings" element={<ModelSettingsPage />} />
       </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
