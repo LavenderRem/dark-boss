@@ -12,6 +12,7 @@ export type ServerEventType =
   | 'agent:process_status' // Agent 进程状态变更
   | 'agent:file_change'    // Agent 修改文件
   | 'agent:token_usage'    // Token 使用量更新
+  | 'agent:terminal_event' // 类型化终端事件
   | 'workflow:progress'    // 工作流步骤进度
   | 'workflow:node_start'  // 节点开始执行
   | 'workflow:node_complete' // 节点完成
@@ -30,6 +31,7 @@ export type ClientEventType =
   | 'agent:stop'           // 停止 Agent 进程
   | 'agent:restart'        // 重启 Agent 进程
   | 'agent:send_message'   // 向 Agent 进程发送消息
+  | 'agent:permission_response' // 权限确认响应
   | 'workflow:execute'     // 开始工作流
   | 'workflow:pause'       // 暂停工作流
   | 'chat:typing';         // 打字指示器

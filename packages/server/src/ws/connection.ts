@@ -112,6 +112,16 @@ function handleClientMessage(_ws: WebSocket, msg: WsMessage) {
       }
       break;
     }
+    case 'agent:permission_response': {
+      // 权限确认响应
+      const payload = msg.payload as { agentId: string; response: string };
+      try {
+        agentProcessManager.handlePermissionResponse(payload.agentId, payload.response);
+      } catch (err) {
+        console.error(`[WS] 权限响应失败:`, err);
+      }
+      break;
+    }
     default:
       console.log(`[WS] 未知消息类型: ${msg.type}`);
   }
