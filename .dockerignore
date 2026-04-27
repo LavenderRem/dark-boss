@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+.env.local
+*.local
+*.db
+*.db-journal
+.git/
+.claude/
+.playwright-mcp/
+.superpowers/
+docs/
+*.md
+!packages/client/dist/
+.DS_Store

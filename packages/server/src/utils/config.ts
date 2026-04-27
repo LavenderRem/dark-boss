@@ -1,9 +1,13 @@
+// 是否为生产环境
+export const isProduction = process.env.NODE_ENV === 'production';
+
 // 环境配置
 export const config = {
   port: parseInt(process.env.PORT || '3000', 10),
-  host: process.env.HOST || 'localhost',
+  host: process.env.HOST || (isProduction ? '0.0.0.0' : 'localhost'),
   clientPort: parseInt(process.env.CLIENT_PORT || '5173', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
+  isProduction,
   dataDir: process.env.DATA_DIR || '~/.dark-boss',
   dbEncryptionKey: process.env.DB_ENCRYPTION_KEY || '',
 
