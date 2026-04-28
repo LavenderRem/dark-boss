@@ -7,7 +7,7 @@
 - TypeScript 全栈 (pnpm monorepo)
 - 后端: Express 5 + sql.js (WASM SQLite) + WebSocket
 - 前端: React 19 + Vite 6 + Ant Design 5 + React Flow + Zustand
-- Agent 控制: Claude Agent SDK (计划中)
+- Agent 控制: Claude CLI 流式会话模式 (`--input-format stream-json`)
 
 ## 前置要求
 
@@ -33,6 +33,9 @@ pnpm dev
 | `pnpm dev:server` | 仅启动后端 (端口 3000) |
 | `pnpm dev:client` | 仅启动前端 (端口 5173) |
 | `pnpm build` | 构建所有子包 |
+| `pnpm db:generate` | 生成数据库迁移 |
+| `pnpm db:migrate` | 执行数据库迁移 |
+| `pnpm db:seed` | 填充数据库种子数据 |
 | `pnpm --filter @dark-boss/server typecheck` | 后端类型检查 |
 | `pnpm --filter @dark-boss/client typecheck` | 前端类型检查 |
 <!-- AUTO-GENERATED:SCRIPTS-END -->
@@ -51,6 +54,22 @@ pnpm dev
 | POST | /agents | 创建 Agent |
 | PATCH | /agents/:id | 更新 Agent |
 | DELETE | /agents/:id | 删除 Agent |
+| GET | /agents/:id/events | 获取 Agent 终端事件 |
+| GET | /agents/:id/sessions | 获取 Agent 会话列表 |
+| POST | /agents/:id/sessions/:sessionId/restore | 恢复会话 |
+| GET | /agents/:id/context | 获取 Agent 上下文 |
+
+### Agent 进程 (通过 WebSocket)
+
+| 消息类型 | 方向 | 说明 |
+|---------|------|------|
+| agent:spawn | 客户端→服务器 | 启动 Agent 持久进程 |
+| agent:stop | 客户端→服务器 | 停止 Agent 进程 |
+| agent:restart | 客户端→服务器 | 重启 Agent 进程 |
+| agent:send_message | 客户端→服务器 | 向 Agent 发送消息 |
+| agent:permission_response | 客户端→服务器 | 响应权限请求 |
+| agent:terminal_event | 服务器→客户端 | 类型化终端事件流 |
+| agent:process_status | 服务器→客户端 | 进程状态变更 |
 
 ### Department (部门)
 
@@ -59,6 +78,8 @@ pnpm dev
 | GET | /departments | 列出所有部门 |
 | POST | /departments | 创建部门 |
 | DELETE | /departments/:id | 删除部门 |
+| PATCH | /departments/:id | 更新部门 |
+| POST | /departments/:id/move | 移动部门排序 |
 
 ### Template (招聘模板)
 
@@ -66,6 +87,7 @@ pnpm dev
 |------|------|------|
 | GET | /templates | 列出模板 (?category= 筛选) |
 | POST | /templates/:id/install | 从模板创建 Agent |
+| POST | /templates/:id/rate | 模板评分 |
 
 ### Workflow (工作流)
 
@@ -77,6 +99,70 @@ pnpm dev
 | PATCH | /workflows/:id | 保存画布 |
 | DELETE | /workflows/:id | 删除工作流 |
 | POST | /workflows/:id/execute | 执行工作流 |
+| GET | /workflows/:id/executions | 获取执行记录 |
+| GET | /workflows/:id/executions/latest | 获取最近执行 |
+| GET | /workflows/:id/executions/:executionId | 获取执行详情 |
+
+### Task (任务)
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /tasks | 列出任务 |
+| GET | /tasks/by-workflow/:workflowId | 按工作流筛选 |
+| GET | /tasks/:id | 获取单个任务 |
+| POST | /tasks | 创建任务 |
+| PATCH | /tasks/:id | 更新任务 |
+| PATCH | /tasks/:id/move | 移动任务 |
+| POST | /tasks/agent/:agentId/pull-task | Agent 拉取任务 |
+| POST | /tasks/:id/assign/:agentId | 分配任务给 Agent |
+| POST | /tasks/:id/execute | 执行任务 |
+| DELETE | /tasks/:id | 删除任务 |
+| POST | /tasks/delegate | 委派任务 |
+
+### Chat (聊天)
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /chat/channels | 列出频道 |
+| POST | /chat/channels | 创建频道 |
+| GET | /chat/channels/:id/messages | 获取消息列表 |
+| POST | /chat/channels/:id/messages | 发送消息 |
+
+### File (文件)
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /files/tree | 获取文件树 |
+| GET | /files/content | 获取文件内容 |
+| GET | /files/changes | 获取文件变更 |
+| POST | /files/diff | 计算文件差异 |
+
+### Provider (模型提供商)
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /providers | 列出提供商 |
+| POST | /providers | 创建提供商 |
+| PATCH | /providers/:id | 更新提供商 |
+| DELETE | /providers/:id | 删除提供商 |
+| POST | /providers/:id/test | 测试连接 |
+
+### Model Tier (模型层级)
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /model-tiers | 列出模型层级 |
+| PATCH | /model-tiers/:tier | 更新模型层级配置 |
+
+### Performance (绩效)
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /performance/dashboard | 绩效仪表盘 |
+| GET | /performance/trend | 绩效趋势 |
+| GET | /performance/agents | Agent 绩效列表 |
+| GET | /performance/agents/:id | 单个 Agent 绩效 |
+| GET | /performance/agents/:id/report | 生成绩效报告 |
 
 ### System
 

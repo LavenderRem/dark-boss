@@ -103,17 +103,8 @@ export function AgentTerminal({
       }
     }
 
-    if (msg.type === 'agent:process_output') {
-      const payload = msg.payload as { agentId: string; text: string; channel: string };
-      if (payload.agentId === agentId) {
-        if (payload.text.startsWith('[状态]') || payload.text.startsWith('状态更新') ||
-            payload.text.startsWith('[用户输入]') || payload.text.startsWith('[工具调用]') ||
-            payload.text.startsWith('[工具结果]') || payload.text.startsWith('[错误]')) {
-          return;
-        }
-        bufferEvent({ type: 'text', content: payload.text });
-      }
-    }
+    // agent:process_output 是旧协议 fallback，已在 agent:terminal_event 中完整处理
+    // 不再从此处渲染文本，避免重复显示
 
     if (msg.type === 'agent:process_status') {
       const payload = msg.payload as AgentProcessStatusPayload;

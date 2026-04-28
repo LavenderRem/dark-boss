@@ -218,17 +218,9 @@ export function renderPermissionPrompt(
  */
 export function renderTextBlock(content: string): string {
   if (!content) return '';
-  // 段落分隔：双换行 → 空行
-  const paragraphs = content.split(/\n\n+/);
-  return paragraphs
-    .map(p => {
-      const lines = p.split('\n');
-      return lines.map((line, i) => {
-        if (i === 0) return `  ${escapeLine(line)}`;
-        return `  ${escapeLine(line)}`;
-      }).join('\r\n');
-    })
-    .join('\r\n\r\n') + '\r\n';
+  // 流式文本直接透传到终端，不做额外格式化
+  // 内容本身已包含模型输出的格式（换行、缩进等），只需转义并转换换行符
+  return escapeLine(content).replace(/\n/g, '\r\n');
 }
 
 /**
