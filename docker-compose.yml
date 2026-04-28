@@ -1,0 +1,21 @@
+services:
+  dark-boss:
+    build: .
+    container_name: dark-boss
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=3000
+      - DATA_DIR=/home/darkboss/.dark-boss
+    user: darkboss
+    volumes:
+      - dark-boss-data:/home/darkboss/.dark-boss
+      - /root/.nvm/versions/node/v22.22.1/lib/node_modules:/host-claude/node_modules:ro
+
+volumes:
+  dark-boss-data:
