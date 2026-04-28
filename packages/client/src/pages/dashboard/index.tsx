@@ -1,4 +1,5 @@
-import { Row, Col, Card, Statistic, Typography } from 'antd';
+import { useState } from 'react';
+import { Row, Col, Card, Statistic, Typography, Modal } from 'antd';
 import {
   TeamOutlined,
   CheckCircleOutlined,
@@ -9,6 +10,8 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../api/client.js';
 import type { Agent } from '@dark-boss/shared';
 import { AGENT_ROLES, AGENT_STATUS_LABELS, AGENT_STATUS_COLORS } from '@dark-boss/shared';
+import { AgentTerminal } from '../../components/agent/agent-terminal.js';
+import { ContextMeter } from '../../components/agent/context-meter.js';
 
 const { Title } = Typography;
 
@@ -17,6 +20,8 @@ export function DashboardPage() {
     queryKey: ['agents'],
     queryFn: () => api.get<Agent[]>('/agents'),
   });
+
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
 
   const onlineCount = agents.filter(a => a.status !== 'offline').length;
   const workingCount = agents.filter(a => a.status === 'working').length;
@@ -90,9 +95,11 @@ export function DashboardPage() {
               <Col key={agent.id} xs={12} sm={8} md={6} lg={4}>
                 <Card
                   hoverable
+                  onClick={() => setSelectedAgent(agent)}
                   style={{
                     background: '#101010',
                     borderTop: `3px solid ${AGENT_STATUS_COLORS[agent.status]}`,
+                    cursor: 'pointer',
                   }}
                   size="small"
                 >
@@ -117,6 +124,30 @@ export function DashboardPage() {
           })}
         </Row>
       )}
+
+      {/* 员工终端弹窗 */}
+      <Modal
+        title={selectedAgent ? (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            {`${AGENT_ROLES[selectedAgent.role]?.icon || ''} ${selectedAgent.name}`}
+            <ContextMeter agentId={selectedAgent.id} size={28} showLabel={false} />
+          </span>
+        ) : '员工终端'}
+        open={!!selectedAgent}
+        onCancel={() => setSelectedAgent(null)}
+        footer={null}
+        width={960}
+        styles={{ body: { padding: 0 } }}
+        destroyOnClose
+      >
+        {selectedAgent && (
+          <AgentTerminal
+            agentId={selectedAgent.id}
+            agentName={selectedAgent.name}
+            height={500}
+          />
+        )}
+      </Modal>
     </div>
   );
 }
