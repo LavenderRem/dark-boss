@@ -19,7 +19,7 @@ if (fs.existsSync(envPath)) {
       }
     }
   }
-  console.log('[暗黑老板] 已加载 .env 配置');
+  console.log('[DarkBoss] 已加载 .env 配置');
 }
 
 // 动态导入（在 .env 加载之后执行，确保 config.ts 能读到环境变量）
@@ -64,7 +64,7 @@ async function main() {
     if (isShuttingDown) return;
     isShuttingDown = true;
 
-    console.log(`\n[暗黑老板] 收到 ${signal}，正在优雅退出...`);
+    console.log(`\n[DarkBoss] 收到 ${signal}，正在优雅退出...`);
 
     // 停止定时器
     clearInterval(saveInterval);
@@ -80,13 +80,13 @@ async function main() {
       // 3. 关闭 HTTP 服务器（带超时保护）
       await new Promise<void>((resolve) => {
         const timeout = setTimeout(() => {
-          console.log('[暗黑老板] HTTP 服务器关闭超时，强制退出');
+          console.log('[DarkBoss] HTTP 服务器关闭超时，强制退出');
           resolve();
         }, 3000);
 
         server.close(() => {
           clearTimeout(timeout);
-          console.log('[暗黑老板] HTTP 服务器已关闭');
+          console.log('[DarkBoss] HTTP 服务器已关闭');
           resolve();
         });
       });
@@ -94,10 +94,10 @@ async function main() {
       // 4. 持久化并关闭数据库
       closeDatabase();
     } catch (err) {
-      console.error('[暗黑老板] 退出时出错:', err);
+      console.error('[DarkBoss] 退出时出错:', err);
     }
 
-    console.log('[暗黑老板] 退出完成');
+    console.log('[DarkBoss] 退出完成');
     process.exit(0);
   }
 
@@ -108,13 +108,13 @@ async function main() {
   process.on('SIGHUP', () => gracefulShutdown('SIGHUP'));
 
   server.listen(config.port, config.host, () => {
-    console.log(`[暗黑老板] 服务器已启动: http://${config.host}:${config.port}`);
-    console.log(`[暗黑老板] WebSocket: ws://${config.host}:${config.port}/ws`);
+    console.log(`[DarkBoss] 服务器已启动: http://${config.host}:${config.port}`);
+    console.log(`[DarkBoss] WebSocket: ws://${config.host}:${config.port}/ws`);
     if (!isClaudeSdkAvailable()) {
-      console.warn('[暗黑老板] ⚠️  ANTHROPIC_AUTH_TOKEN 未配置，AI 功能（绩效报告、Agent 聊天）将降级为模板模式');
+      console.warn('[DarkBoss] ⚠️  ANTHROPIC_AUTH_TOKEN 未配置，AI 功能（绩效报告、Agent 聊天）将降级为模板模式');
     } else {
       const env = getClaudeEnv();
-      console.log(`[暗黑老板] ✅ Claude Code SDK 已就绪 (${env.ANTHROPIC_BASE_URL || '默认 API'})`);
+      console.log(`[DarkBoss] ✅ Claude Code SDK 已就绪 (${env.ANTHROPIC_BASE_URL || '默认 API'})`);
     }
   });
 }

@@ -138,7 +138,7 @@ export function DashboardPage() {
         footer={null}
         width={960}
         styles={{ body: { padding: 0 } }}
-        destroyOnClose
+        destroyOnHidden
       >
         {selectedAgent && (
           <AgentTerminal

@@ -247,7 +247,7 @@ export function getOutputHistory(agentId: string): string[] {
  * 恢复所有活跃进程（服务重启时调用）
  */
 export async function restoreProcesses(): Promise<void> {
-  const agents = queryAll<{ id: string }>("SELECT id FROM agents WHERE status IN ('working', 'error')");
+  const agents = queryAll<{ id: string }>("SELECT id FROM agents WHERE status IN ('working', 'error', 'idle')");
   if (agents.length === 0) return;
 
   for (const agent of agents) {
@@ -396,12 +396,14 @@ function spawnPersistentProcess(agentId: string, agent: AgentRow): void {
           }
         }, 1000);
       } else {
+        run("UPDATE agents SET status = 'offline', last_activity_at = ? WHERE id = ?", [Date.now(), agentId]);
         broadcast('agent:process_status', { agentId, status: 'error', error: `进程退出 code=${code}` });
       }
     } else {
       // code=0 且非主动停止 — CLI 正常退出（如 --max-turns 达到上限）
       session.processState = 'dead';
-      broadcast('agent:process_status', { agentId, status: 'idle', sessionId: session.sessionId });
+      run("UPDATE agents SET status = 'offline', last_activity_at = ? WHERE id = ?", [Date.now(), agentId]);
+      broadcast('agent:process_status', { agentId, status: 'stopped', sessionId: session.sessionId });
     }
   });
 
@@ -480,6 +482,7 @@ function routeStreamJson(agentId: string, line: string): void {
         session.lastMessageAt = Date.now();
         console.log(`[Agent 进程] ${agentId} 预热完成，进程就绪`);
         broadcast('agent:process_status', { agentId, status: 'idle', sessionId: session.sessionId });
+        run("UPDATE agents SET status = 'idle', last_activity_at = ? WHERE id = ?", [Date.now(), agentId]);
         if (session.messageQueue.length > 0) processQueue(agentId);
         else resetIdleTimer(agentId);
       } else {
@@ -687,6 +690,7 @@ function handleResultMessage(agentId: string, event: Record<string, unknown>): v
   session.processState = 'ready';
   session.lastMessageAt = Date.now();
   broadcast('agent:process_status', { agentId, status: 'idle', sessionId: session.sessionId });
+  run("UPDATE agents SET status = 'idle', last_activity_at = ? WHERE id = ?", [Date.now(), agentId]);
 
   // 处理队列中的下一条消息
   if (session.messageQueue.length > 0) {
@@ -820,6 +824,7 @@ function processQueue(agentId: string): void {
   session.processState = 'running';
   session.lastMessageAt = Date.now();
   broadcast('agent:process_status', { agentId, status: 'running' });
+  run("UPDATE agents SET status = 'working', last_activity_at = ? WHERE id = ?", [Date.now(), agentId]);
 
   console.log(`[Agent 进程] ${agentId} 发送消息: "${message.slice(0, 50)}..."`);
 }
@@ -869,6 +874,8 @@ function handleZombieProcess(agentId: string): void {
   killProcess(session.currentProcess);
   session.currentProcess = null;
   session.processState = 'dead';
+  run("UPDATE agents SET status = 'offline', last_activity_at = ? WHERE id = ?", [Date.now(), agentId]);
+  broadcast('agent:process_status', { agentId, status: 'stopped' });
 
   if (agent) {
     setTimeout(() => {
@@ -901,7 +908,8 @@ function resetIdleTimer(agentId: string): void {
     session.processState = 'dead';
     stopHeartbeat(session);
 
-    broadcast('agent:process_status', { agentId, status: 'idle', sessionId: session.sessionId });
+    run("UPDATE agents SET status = 'offline', last_activity_at = ? WHERE id = ?", [Date.now(), agentId]);
+    broadcast('agent:process_status', { agentId, status: 'stopped', sessionId: session.sessionId });
   }, IDLE_TIMEOUT_MS);
 }
 

@@ -6,7 +6,7 @@
 
 ## Context
 
-Dark Boss (暗黑老板) 是一个图形化 Claude Code 多 Agent 编排平台，需要前后端协作紧密。后端需要与 Claude Agent SDK 交互控制 AI Agent 实例。用户是全栈开发工程师，单人开发，需要最大化开发效率。
+Dark Boss  是一个图形化 Claude Code 多 Agent 编排平台，需要前后端协作紧密。后端需要与 Claude Agent SDK 交互控制 AI Agent 实例。用户是全栈开发工程师，单人开发，需要最大化开发效率。
 
 ## Decision
 

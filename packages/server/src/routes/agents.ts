@@ -49,7 +49,7 @@ router.post('/', (req, res) => {
 
     run(
       `INSERT INTO agents (id, name, role, cwd, model, permission_mode, status, department_id, is_boss, custom_instructions, allowed_tools, mcp_servers, template_id, created_at, last_activity_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'idle', ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, 'offline', ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, body.name, body.role, body.cwd,
         body.model || 'sonnet', body.permissionMode || 'bypass',

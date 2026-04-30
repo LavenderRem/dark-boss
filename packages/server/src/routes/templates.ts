@@ -35,7 +35,7 @@ router.post('/:id/install', (req, res) => {
 
     run(
       `INSERT INTO agents (id, name, role, cwd, model, permission_mode, status, custom_instructions, allowed_tools, mcp_servers, template_id, department_id, created_at, last_activity_at)
-       VALUES (?, ?, ?, ?, ?, 'bypass', 'idle', ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, 'bypass', 'offline', ?, ?, ?, ?, ?, ?, ?)`,
       [agentId, name || template.name, template.role, cwd, agentModel,
         template.custom_instructions, template.allowed_tools, template.mcp_servers,
         template.id, departmentId || null, now, now]

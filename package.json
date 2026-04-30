@@ -2,7 +2,7 @@
   "name": "dark-boss",
   "version": "0.1.0",
   "private": true,
-  "description": "暗黑老板 - 图形化 Claude Code 多 Agent 编排平台",
+  "description": "DarkBoss - 图形化 Claude Code 多 Agent 编排平台",
   "scripts": {
     "dev": "concurrently -n server,client -c blue,green \"pnpm --filter @dark-boss/server dev\" \"pnpm --filter @dark-boss/client dev\"",
     "dev:server": "pnpm --filter @dark-boss/server dev",

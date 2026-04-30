@@ -1,4 +1,4 @@
-# Dark Boss (暗黑老板)
+# Dark Boss 
 
 图形化 Claude Code 多 Agent 编排平台。用户是老板，Claude Code Agent 是员工。
 

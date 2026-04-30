@@ -16,6 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../api/client.js';
 import type { Agent } from '@dark-boss/shared';
 import { ContextMeter } from '../agent/context-meter.js';
+import { AgentStatusSync } from '../agent/agent-status-sync.js';
 
 const { Sider, Header, Content } = Layout;
 
@@ -46,7 +47,9 @@ export function AppLayout() {
   const workingAgent = agents.find(a => a.status === 'working');
 
   return (
-    <Layout style={{ height: '100vh', overflow: 'hidden' }}>
+    <>
+      <AgentStatusSync />
+      <Layout style={{ height: '100vh', overflow: 'hidden' }}>
       <Sider
         width={200}
         collapsible
@@ -66,7 +69,7 @@ export function AppLayout() {
           borderBottom: '1px solid #3d3a39',
           animation: 'greenPulse 3s ease-in-out infinite',
         }}>
-          暗黑老板
+          DarkBoss
         </div>
         <Menu
           theme="dark"
@@ -108,5 +111,6 @@ export function AppLayout() {
         </Content>
       </Layout>
     </Layout>
+    </>
   );
 }
