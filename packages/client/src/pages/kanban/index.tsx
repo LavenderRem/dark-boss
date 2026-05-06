@@ -1,146 +1,90 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Card, Button, Modal, Form, Input, Select, Tag, Typography, Space, message, Skeleton, DatePicker } from 'antd';
+import { Button, Card, Modal, Form, Input, Select, Typography, Skeleton, DatePicker, Tag, App } from 'antd';
 import {
   PlusOutlined,
   ExclamationCircleOutlined,
-  ClockCircleOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  DndContext,
-  DragOverlay,
-  closestCorners,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragStartEvent,
-  type DragEndEvent,
-} from '@dnd-kit/core';
-import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 import dayjs from 'dayjs';
 import { api } from '../../api/client.js';
-import type { Task, TaskStatus, TaskPriority, Agent } from '@dark-boss/shared';
+import type { Task, TaskStatus, Agent } from '@dark-boss/shared';
 import { AGENT_ROLES } from '@dark-boss/shared';
 import { TaskDetailDrawer } from './components/task-detail-drawer.js';
+import { ViewSwitcher, type ViewMode } from './components/view-switcher.js';
+import { KanbanView } from './components/kanban-view.js';
+import { ListView } from './components/list-view.js';
+import { AgentView } from './components/agent-view.js';
+import { WorkloadOverview } from './components/workload-overview.js';
+import { useAgentWorkload } from './hooks/use-agent-workload.js';
+import { useTaskFilters } from './hooks/use-task-filters.js';
+import { useKanbanDnd } from './hooks/use-kanban-dnd.js';
+import { useKeyboardShortcuts } from './hooks/use-keyboard-shortcuts.js';
+import { getSortedAgentsForAssign } from './utils/get-sorted-agents.js';
+import { getAllTemplates, type TaskTemplate } from './utils/task-templates.js';
+import { checkWipLimit } from './utils/wip-limits.js';
+import { BatchActions } from './components/batch-actions.js';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
-// 看板列配置
-const COLUMNS: { status: TaskStatus; label: string; color: string }[] = [
-  { status: 'backlog', label: '待规划', color: '#8b949e' },
-  { status: 'todo', label: '待办', color: '#00d992' },
-  { status: 'in_progress', label: '进行中', color: '#ffba00' },
-  { status: 'review', label: '审核中', color: '#722ed1' },
-  { status: 'done', label: '已完成', color: '#00d992' },
-];
+// 负责人选择器内部组件（访问表单值以计算智能排序）
+function AssigneeSelect({ agents, workloads }: { agents: Agent[]; workloads: any[] }) {
+  const form = Form.useFormInstance();
+  const formValues = Form.useWatch('title', form) ? form.getFieldsValue() : {};
 
-const PRIORITY_CONFIG: Record<TaskPriority, { label: string; color: string }> = {
-  critical: { label: '紧急', color: '#fb565b' },
-  high: { label: '高', color: '#fa8c16' },
-  medium: { label: '中', color: '#00d992' },
-  low: { label: '低', color: '#8b949e' },
-};
-
-// 可拖拽的任务卡片
-function TaskCard({ task, agents, onClick }: {
-  task: Task;
-  agents: Agent[];
-  onClick: (task: Task) => void;
-}) {
-  const assignee = agents.find(a => a.id === task.assignedAgentId);
-  const priorityConfig = PRIORITY_CONFIG[task.priority];
-  const roleInfo = assignee ? (AGENT_ROLES[assignee.role] || AGENT_ROLES.custom) : null;
-  const isOverdue = task.dueAt && task.status !== 'done' && task.status !== 'cancelled'
-    && new Date(task.dueAt).getTime() < Date.now();
-
-  return (
-    <Card
-      size="small"
-      style={{
-        background: '#2a2a2a',
-        borderLeft: `3px solid ${priorityConfig.color}`,
-        cursor: 'pointer',
-      }}
-      styles={{ body: { padding: '8px 12px' } }}
-      onClick={() => onClick(task)}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ color: '#f2f2f2', fontSize: 13, fontWeight: 500, marginBottom: 4 }}>
-            {task.title}
-          </div>
-          <Space size={4}>
-            <Tag color={priorityConfig.color} style={{ fontSize: 11, lineHeight: '18px', padding: '0 4px' }}>
-              {priorityConfig.label}
-            </Tag>
-            {task.estimatedMinutes && (
-              <Text style={{ color: '#595959', fontSize: 11 }}>
-                <ClockCircleOutlined /> {task.estimatedMinutes}分钟
-              </Text>
-            )}
-            {isOverdue && (
-              <Tag color="error" style={{ fontSize: 10, lineHeight: '16px', padding: '0 3px', margin: 0 }}>
-                逾期
-              </Tag>
-            )}
-          </Space>
-        </div>
-      </div>
-      {assignee && (
-        <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ fontSize: 14 }}>{roleInfo?.icon}</span>
-          <Text style={{ color: '#8b949e', fontSize: 11 }}>{assignee.name}</Text>
-        </div>
-      )}
-    </Card>
+  const sortedAgents = getSortedAgentsForAssign(
+    agents,
+    workloads,
+    formValues.title || '',
+    formValues.description || null,
+    formValues.tags || []
   );
-}
-
-// 可排序的任务卡片（带 dnd-kit useSortable）
-function SortableTaskCard({ task, agents, onClick }: {
-  task: Task;
-  agents: Agent[];
-  onClick: (task: Task) => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: task.id,
-    data: { status: task.status },
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    marginBottom: 8,
-  };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <TaskCard task={task} agents={agents} onClick={onClick} />
-    </div>
+    <Select
+      allowClear
+      placeholder="选择员工（可选）"
+      showSearch
+      optionFilterProp="children"
+    >
+      {sortedAgents.map(a => {
+        const roleInfo = AGENT_ROLES[a.role] || AGENT_ROLES.custom;
+        const workload = workloads.find((w: any) => w.agentId === a.id);
+        const loadPercent = workload?.loadPercent || 0;
+        const inProgressCount = workload?.inProgressCount || 0;
+        return (
+          <Select.Option key={a.id} value={a.id}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <span>
+                {roleInfo.icon} {a.name} - {roleInfo.label}
+              </span>
+              <span style={{ fontSize: 11, color: loadPercent > 60 ? '#fb565b' : '#8b949e' }}>
+                {inProgressCount} 进行中 ({loadPercent}%)
+              </span>
+            </div>
+          </Select.Option>
+        );
+      })}
+    </Select>
   );
 }
 
 export function KanbanPage() {
+  const { modal, message } = App.useApp();
   const queryClient = useQueryClient();
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [detailTask, setDetailTask] = useState<Task | null>(null);
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [executingTaskId, setExecutingTaskId] = useState<string | null>(null);
   const [form] = Form.useForm();
   const [editForm] = Form.useForm();
   const [defaultStatus, setDefaultStatus] = useState<TaskStatus>('todo');
-
-  // 筛选状态
-  const [searchText, setSearchText] = useState('');
-  const [filterAgent, setFilterAgent] = useState<string | undefined>(undefined);
-  const [filterDept, setFilterDept] = useState<string | undefined>(undefined);
-  const [filterPriority, setFilterPriority] = useState<TaskPriority | undefined>(undefined);
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
+  const [selectedAgentForOverview, setSelectedAgentForOverview] = useState<string | undefined>(undefined);
+  const [selectedTemplate, setSelectedTemplate] = useState<TaskTemplate | null>(null);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
 
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['tasks'],
@@ -162,9 +106,21 @@ export function KanbanPage() {
     queryFn: () => api.get<{ id: string; name: string }[]>('/workflows'),
   });
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  );
+  // 计算 Agent 工作量
+  const workloads = useAgentWorkload(tasks, agents);
+
+  // 使用筛选 Hook
+  const {
+    searchText,
+    setSearchText,
+    filterAgent,
+    setFilterAgent,
+    filterDept,
+    setFilterDept,
+    filterPriority,
+    setFilterPriority,
+    filteredTasks,
+  } = useTaskFilters(tasks);
 
   const createMutation = useMutation({
     mutationFn: (body: Record<string, unknown>) => api.post('/tasks', body),
@@ -196,6 +152,27 @@ export function KanbanPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
   });
 
+  // WIP 限制检查
+  const checkWipLimitBeforeMove = useCallback(async (taskId: string, targetStatus: TaskStatus) => {
+    const targetTasksCount = filteredTasks.filter(t => t.status === targetStatus && t.id !== taskId).length;
+    const { exceeded, limit } = checkWipLimit(targetStatus, targetTasksCount);
+
+    if (exceeded) {
+      return new Promise<boolean>((resolve) => {
+        modal.confirm({
+          title: 'WIP 限制警告',
+          icon: <ExclamationCircleOutlined />,
+          content: `目标列 "${targetStatus}" 已达到 WIP 上限 (${limit} 个任务)。是否仍要移动？`,
+          okText: '继续移动',
+          cancelText: '取消',
+          onOk: () => resolve(true),
+          onCancel: () => resolve(false),
+        });
+      });
+    }
+    return true;
+  }, [filteredTasks]);
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.delete(`/tasks/${id}`),
     onSuccess: () => {
@@ -207,53 +184,60 @@ export function KanbanPage() {
     onError: (err: Error) => message.error(err.message),
   });
 
+  // 使用拖拽 Hook（需要在 moveMutation 定义后）
+  const { activeTask, sensors, handleDragStart, handleDragEnd } = useKanbanDnd(
+    filteredTasks,
+    useCallback(
+      async (params) => {
+        const confirmed = await checkWipLimitBeforeMove(params.id, params.status);
+        if (confirmed) {
+          moveMutation.mutate(params);
+        }
+      },
+      [moveMutation, checkWipLimitBeforeMove]
+    )
+  );
+
   // WebSocket 实时同步
   useEffect(() => {
     const handler = (event: Event) => {
-      const { type } = (event as CustomEvent).detail;
+      const { type, payload } = (event as CustomEvent).detail;
       if (type === 'task:updated') {
         queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      }
+      if (type === 'task:progress') {
+        queryClient.setQueryData<Task[]>(['tasks'], (old) => {
+          if (!old) return old;
+          return old.map((t) =>
+            t.id === payload.taskId
+              ? { ...t, progress: payload.progress, activitySummary: payload.summary }
+              : t
+          );
+        });
+      }
+      if (type === 'task:activity') {
+        queryClient.setQueryData<Task[]>(['tasks'], (old) => {
+          if (!old) return old;
+          return old.map((t) => (t.id === payload.taskId ? { ...t, activitySummary: payload.detail } : t));
+        });
       }
     };
     window.addEventListener('ws:message', handler);
     return () => window.removeEventListener('ws:message', handler);
   }, [queryClient]);
 
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const task = tasks.find(t => t.id === event.active.id);
-    setActiveTask(task || null);
-  }, [tasks]);
-
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    setActiveTask(null);
-    const { active, over } = event;
-    if (!over) return;
-
-    const taskId = active.id as string;
-    const overId = over.id as string;
-
-    const targetColumn = COLUMNS.find(c => c.status === overId);
-    if (targetColumn) {
-      const task = tasks.find(t => t.id === taskId);
-      if (task && task.status !== targetColumn.status) {
-        moveMutation.mutate({ id: taskId, status: targetColumn.status, columnOrder: Date.now() });
-      }
-      return;
-    }
-
-    const targetTask = tasks.find(t => t.id === overId);
-    if (targetTask && taskId !== overId) {
-      moveMutation.mutate({ id: taskId, status: targetTask.status, columnOrder: targetTask.columnOrder });
-    }
-  }, [tasks, moveMutation]);
-
   const handleCreate = () => {
-    form.validateFields().then(values => {
+    form.validateFields().then((values) => {
+      const taskType = values.taskType || (selectedTemplate?.defaultTaskType || 'task');
+      const tags = values.tags || selectedTemplate?.defaultTags || [];
+
       createMutation.mutate({
         title: values.title,
         description: values.description,
         priority: values.priority || 'medium',
         status: defaultStatus,
+        taskType,
+        tags,
         assignedAgentId: values.assignedAgentId,
         departmentId: values.departmentId,
         workflowId: values.workflowId,
@@ -263,9 +247,27 @@ export function KanbanPage() {
     });
   };
 
+  const handleSelectTemplate = (templateId: string) => {
+    const template = getAllTemplates().find(t => t.id === templateId);
+    if (template) {
+      setSelectedTemplate(template);
+      form.setFieldsValue({
+        taskType: template.defaultTaskType,
+        tags: template.defaultTags,
+      });
+      // 如果有默认角色，设置默认负责人
+      if (template.defaultRole) {
+        const defaultAgent = agents.find(a => a.role === template.defaultRole);
+        if (defaultAgent) {
+          form.setFieldsValue({ assignedAgentId: defaultAgent.id });
+        }
+      }
+    }
+  };
+
   const handleEdit = () => {
     if (!editingTask) return;
-    editForm.validateFields().then(values => {
+    editForm.validateFields().then((values) => {
       updateMutation.mutate({
         id: editingTask.id,
         body: {
@@ -280,7 +282,7 @@ export function KanbanPage() {
   };
 
   const handleDelete = (id: string) => {
-    Modal.confirm({
+    modal.confirm({
       title: '确认删除',
       icon: <ExclamationCircleOutlined />,
       content: '确定要删除这个任务吗？',
@@ -306,37 +308,163 @@ export function KanbanPage() {
   };
 
   // 点击任务卡片 → 打开详情
-  const handleTaskClick = (task: Task) => {
-    setDetailTask(task);
-    setDetailOpen(true);
+  const handleTaskClick = (task: Task, event?: React.MouseEvent) => {
+    if (event?.ctrlKey || event?.metaKey) {
+      // Ctrl+点击切换选中状态
+      const newSelection = new Set(selectedTaskIds);
+      if (newSelection.has(task.id)) {
+        newSelection.delete(task.id);
+      } else {
+        newSelection.add(task.id);
+      }
+      setSelectedTaskIds(newSelection);
+    } else {
+      setDetailTask(task);
+      setDetailOpen(true);
+    }
   };
 
-  // 筛选后的任务列表
-  const filteredTasks = tasks.filter(t => {
-    if (searchText) {
-      const lower = searchText.toLowerCase();
-      if (!t.title.toLowerCase().includes(lower) && !(t.description || '').toLowerCase().includes(lower)) {
-        return false;
-      }
-    }
-    if (filterAgent && t.assignedAgentId !== filterAgent) return false;
-    if (filterDept && t.departmentId !== filterDept) return false;
-    if (filterPriority && t.priority !== filterPriority) return false;
-    return true;
+  // 批量操作
+  const batchMutation = useMutation({
+    mutationFn: (body: { taskIds: string[]; updates: Record<string, unknown> }) =>
+      api.patch('/tasks/batch', body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setSelectedTaskIds(new Set());
+      message.success('批量操作成功');
+    },
+    onError: (err: Error) => message.error(err.message),
   });
 
-  const getTasksByStatus = (status: TaskStatus) => filteredTasks.filter(t => t.status === status);
+  const handleBatchDelete = () => {
+    if (selectedTaskIds.size === 0) return;
+
+    modal.confirm({
+      title: '确认删除',
+      icon: <ExclamationCircleOutlined />,
+      content: `确定要删除选中的 ${selectedTaskIds.size} 个任务吗？`,
+      okText: '删除',
+      cancelText: '取消',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          await Promise.all(Array.from(selectedTaskIds).map(id => api.delete(`/tasks/${id}`)));
+          queryClient.invalidateQueries({ queryKey: ['tasks'] });
+          setSelectedTaskIds(new Set());
+          message.success('批量删除成功');
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : '批量删除失败';
+          message.error(msg);
+        }
+      },
+    });
+  };
+
+  // 快捷键处理
+  useKeyboardShortcuts({
+    onCreate: () => {
+      setDefaultStatus('todo');
+      setCreateModalOpen(true);
+    },
+    onEdit: () => {
+      if (selectedTaskIds.size === 1) {
+        const task = tasks.find(t => t.id === Array.from(selectedTaskIds)[0]);
+        if (task) {
+          setDetailOpen(false);
+          setEditingTask(task);
+          editForm.setFieldsValue({
+            title: task.title,
+            description: task.description,
+            priority: task.priority,
+            assignedAgentId: task.assignedAgentId,
+            dueAt: task.dueAt ? dayjs(task.dueAt) : undefined,
+          });
+          setEditModalOpen(true);
+        }
+      }
+    },
+    onDelete: () => {
+      if (selectedTaskIds.size > 0) {
+        handleBatchDelete();
+      }
+    },
+    onViewChange: (viewIndex) => {
+      const views: ViewMode[] = ['kanban', 'list', 'agent'];
+      setViewMode(views[viewIndex]);
+    },
+    onEscape: () => {
+      if (selectedTaskIds.size > 0) {
+        setSelectedTaskIds(new Set());
+      } else if (detailOpen) {
+        setDetailOpen(false);
+        setDetailTask(null);
+      } else if (createModalOpen) {
+        setCreateModalOpen(false);
+        form.resetFields();
+        setSelectedTemplate(null);
+      } else if (editModalOpen) {
+        setEditModalOpen(false);
+        setEditingTask(null);
+        editForm.resetFields();
+      }
+    },
+    onSelectAll: () => {
+      if (selectedTaskIds.size === filteredTasks.length) {
+        setSelectedTaskIds(new Set());
+      } else {
+        setSelectedTaskIds(new Set(filteredTasks.map(t => t.id)));
+      }
+    },
+  });
+
+  // 快速创建任务（点击列头的 + 按钮）
+  const handleQuickCreate = (status: TaskStatus) => {
+    setDefaultStatus(status);
+    setCreateModalOpen(true);
+  };
+
+  // 点击 Agent 卡片 → 切换筛选
+  const handleAgentCardClick = useCallback(
+    (agentId: string) => {
+      if (selectedAgentForOverview === agentId) {
+        // 如果已选中，则取消筛选
+        setSelectedAgentForOverview(undefined);
+        setFilterAgent(undefined);
+      } else {
+        // 选中新 Agent
+        setSelectedAgentForOverview(agentId);
+        setFilterAgent(agentId);
+      }
+    },
+    [selectedAgentForOverview, setFilterAgent]
+  );
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* 顶部：标题 + 筛选栏 */}
+      {/* 顶部：标题 + 视图切换 + 筛选栏 */}
       <div style={{ marginBottom: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <Title level={4} style={{ color: '#f2f2f2', margin: 0 }}>协作看板</Title>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => {
-            setDefaultStatus('todo');
-            setCreateModalOpen(true);
-          }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 10,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Title level={4} style={{ color: '#f2f2f2', margin: 0 }}>
+              协作看板
+            </Title>
+            <ViewSwitcher current={viewMode} onChange={setViewMode} />
+          </div>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setDefaultStatus('todo');
+              setCreateModalOpen(true);
+            }}
+          >
             新建任务
           </Button>
         </div>
@@ -346,7 +474,7 @@ export function KanbanPage() {
             prefix={<SearchOutlined style={{ color: '#595959' }} />}
             placeholder="搜索任务..."
             value={searchText}
-            onChange={e => setSearchText(e.target.value)}
+            onChange={(e) => setSearchText(e.target.value)}
             allowClear
             style={{ width: 200, background: '#101010', borderColor: '#3d3a39' }}
           />
@@ -356,7 +484,7 @@ export function KanbanPage() {
             value={filterAgent}
             onChange={setFilterAgent}
             style={{ width: 140 }}
-            options={agents.map(a => {
+            options={agents.map((a) => {
               const r = AGENT_ROLES[a.role] || AGENT_ROLES.custom;
               return { value: a.id, label: `${r.icon} ${a.name}` };
             })}
@@ -367,7 +495,7 @@ export function KanbanPage() {
             value={filterDept}
             onChange={setFilterDept}
             style={{ width: 130 }}
-            options={departments.map(d => ({ value: d.id, label: d.name }))}
+            options={departments.map((d) => ({ value: d.id, label: d.name }))}
           />
           <Select
             allowClear
@@ -385,100 +513,96 @@ export function KanbanPage() {
         </div>
       </div>
 
+      {/* 团队负载概览 */}
+      {!agentsLoading && (
+        <WorkloadOverview
+          workloads={workloads}
+          selectedAgentId={selectedAgentForOverview}
+          onAgentClick={handleAgentCardClick}
+        />
+      )}
+
       {tasksLoading || agentsLoading ? (
         <div style={{ display: 'flex', gap: 12 }}>
-          {COLUMNS.map(col => (
-            <Card key={col.status} style={{ flex: 1, minWidth: 240, background: '#050507', borderRadius: 8 }}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <Card
+              key={i}
+              style={{ flex: 1, minWidth: 240, background: '#050507', borderRadius: 8 }}
+            >
               <Skeleton active />
               <Skeleton active />
             </Card>
           ))}
         </div>
       ) : (
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div style={{ display: 'flex', gap: 12, flex: 1, overflow: 'auto' }}>
-          {COLUMNS.map(col => {
-            const columnTasks = getTasksByStatus(col.status);
-            return (
-              <div
-                key={col.status}
-                style={{
-                  flex: 1,
-                  minWidth: 240,
-                  background: '#050507',
-                  borderRadius: 8,
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                {/* 列头 */}
-                <div style={{
-                  padding: '10px 14px',
-                  borderBottom: '1px solid #3d3a39',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}>
-                  <Space>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: col.color, display: 'inline-block' }} />
-                    <Text style={{ color: '#f2f2f2', fontWeight: 600 }}>{col.label}</Text>
-                    <Tag style={{ background: '#3d3a39', color: '#8b949e', border: 'none', fontSize: 11 }}>{columnTasks.length}</Tag>
-                  </Space>
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<PlusOutlined />}
-                    style={{ color: '#595959' }}
-                    onClick={() => {
-                      setDefaultStatus(col.status);
-                      setCreateModalOpen(true);
-                    }}
-                  />
-                </div>
+        <>
+          {/* 根据视图模式渲染不同视图 */}
+          {viewMode === 'kanban' && (
+            <KanbanView
+              tasks={filteredTasks}
+              agents={agents}
+              activeTask={activeTask}
+              sensors={sensors}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onTaskClick={handleTaskClick}
+              onQuickCreate={handleQuickCreate}
+              selectedTaskIds={selectedTaskIds}
+            />
+          )}
 
-                {/* 列内容 */}
-                <SortableContext
-                  id={col.status}
-                  items={columnTasks.map(t => t.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div style={{ padding: 8, flex: 1, overflow: 'auto', minHeight: 100 }}>
-                    {columnTasks.map(task => (
-                      <SortableTaskCard
-                        key={task.id}
-                        task={task}
-                        agents={agents}
-                        onClick={handleTaskClick}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </div>
-            );
-          })}
-        </div>
-
-        <DragOverlay>
-          {activeTask ? (
-            <div style={{ opacity: 0.85, transform: 'rotate(2deg)' }}>
-              <TaskCard task={activeTask} agents={agents} onClick={() => {}} />
+          {viewMode === 'list' && (
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              <ListView
+                tasks={filteredTasks}
+                agents={agents}
+                onTaskClick={handleTaskClick}
+                selectedTaskIds={selectedTaskIds}
+              />
             </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+          )}
+
+          {viewMode === 'agent' && (
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              <AgentView
+                tasks={filteredTasks}
+                agents={agents}
+                onTaskClick={handleTaskClick}
+                selectedTaskIds={selectedTaskIds}
+              />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* 批量操作栏 */}
+      {selectedTaskIds.size > 0 && (
+        <BatchActions
+          selectedCount={selectedTaskIds.size}
+          onClearSelection={() => setSelectedTaskIds(new Set())}
+          onBatchStatusChange={(status) =>
+            batchMutation.mutate({ taskIds: Array.from(selectedTaskIds), updates: { status } })
+          }
+          onBatchPriorityChange={(priority) =>
+            batchMutation.mutate({ taskIds: Array.from(selectedTaskIds), updates: { priority } })
+          }
+          onBatchAssign={(agentId) =>
+            batchMutation.mutate({ taskIds: Array.from(selectedTaskIds), updates: { assignedAgentId: agentId } })
+          }
+          onBatchDelete={handleBatchDelete}
+        />
       )}
 
       {/* 任务详情 Drawer */}
       <TaskDetailDrawer
         task={detailTask}
         open={detailOpen}
-        onClose={() => { setDetailOpen(false); setDetailTask(null); }}
+        onClose={() => {
+          setDetailOpen(false);
+          setDetailTask(null);
+        }}
         agents={agents}
+        allTasks={tasks}
         departments={departments}
         workflows={workflows}
         onEdit={(task) => {
@@ -503,12 +627,44 @@ export function KanbanPage() {
         title="新建任务"
         open={createModalOpen}
         onOk={handleCreate}
-        onCancel={() => { setCreateModalOpen(false); form.resetFields(); }}
+        onCancel={() => {
+          setCreateModalOpen(false);
+          form.resetFields();
+          setSelectedTemplate(null);
+        }}
         confirmLoading={createMutation.isPending}
         okText="创建"
         cancelText="取消"
       >
         <Form form={form} layout="vertical" initialValues={{ priority: 'medium' }}>
+          {/* 模板选择 */}
+          <Form.Item label="选择模板（可选）">
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {getAllTemplates().map(template => (
+                <Tag
+                  key={template.id}
+                  icon={<span style={{ marginRight: 4 }}>{template.icon}</span>}
+                  style={{
+                    cursor: 'pointer',
+                    padding: '4px 12px',
+                    fontSize: 13,
+                    borderRadius: 4,
+                    border: selectedTemplate?.id === template.id ? '1px solid #00d992' : '1px solid #3d3a39',
+                    background: selectedTemplate?.id === template.id ? 'rgba(0, 217, 146, 0.1)' : 'transparent',
+                  }}
+                  onClick={() => handleSelectTemplate(template.id)}
+                >
+                  {template.name}
+                </Tag>
+              ))}
+            </div>
+            {selectedTemplate && (
+              <div style={{ marginTop: 8, fontSize: 12, color: '#8b949e' }}>
+                {selectedTemplate.description} • 子任务: {selectedTemplate.subtasks.join(', ')}
+              </div>
+            )}
+          </Form.Item>
+
           <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入任务标题' }]}>
             <Input placeholder="任务标题" />
           </Form.Item>
@@ -516,6 +672,14 @@ export function KanbanPage() {
             <Input.TextArea rows={3} placeholder="任务描述（可选）" />
           </Form.Item>
           <div style={{ display: 'flex', gap: 16 }}>
+            <Form.Item name="taskType" label="任务类型" style={{ flex: 1 }}>
+              <Select allowClear placeholder="选择任务类型（可选）">
+                <Select.Option value="epic">EPIC</Select.Option>
+                <Select.Option value="story">STORY</Select.Option>
+                <Select.Option value="task">TASK</Select.Option>
+                <Select.Option value="subtask">SUBTASK</Select.Option>
+              </Select>
+            </Form.Item>
             <Form.Item name="priority" label="优先级" style={{ flex: 1 }}>
               <Select>
                 <Select.Option value="critical">紧急</Select.Option>
@@ -534,30 +698,34 @@ export function KanbanPage() {
             </Form.Item>
             <Form.Item name="workflowId" label="关联工作流" style={{ flex: 1 }}>
               <Select allowClear placeholder="选择工作流（可选）">
-                {workflows.map(w => (
-                  <Select.Option key={w.id} value={w.id}>{w.name}</Select.Option>
+                {workflows.map((w) => (
+                  <Select.Option key={w.id} value={w.id}>
+                    {w.name}
+                  </Select.Option>
                 ))}
               </Select>
             </Form.Item>
           </div>
           <Form.Item name="assignedAgentId" label="指派给">
-            <Select allowClear placeholder="选择员工（可选）">
-              {agents.map(a => {
-                const roleInfo = AGENT_ROLES[a.role] || AGENT_ROLES.custom;
-                return (
-                  <Select.Option key={a.id} value={a.id}>
-                    {roleInfo.icon} {a.name} - {roleInfo.label}
-                  </Select.Option>
-                );
-              })}
-            </Select>
+            <AssigneeSelect agents={agents} workloads={workloads} />
           </Form.Item>
           <Form.Item name="departmentId" label="所属部门">
             <Select allowClear placeholder="选择部门（可选）">
-              {departments.map(d => (
-                <Select.Option key={d.id} value={d.id}>{d.name}</Select.Option>
+              {departments.map((d) => (
+                <Select.Option key={d.id} value={d.id}>
+                  {d.name}
+                </Select.Option>
               ))}
             </Select>
+          </Form.Item>
+          <Form.Item name="tags" label="标签">
+            <Select
+              mode="tags"
+              allowClear
+              placeholder="添加标签（可选）"
+              style={{ width: '100%' }}
+              tokenSeparators={[',']}
+            />
           </Form.Item>
         </Form>
       </Modal>
@@ -567,7 +735,11 @@ export function KanbanPage() {
         title="编辑任务"
         open={editModalOpen}
         onOk={handleEdit}
-        onCancel={() => { setEditModalOpen(false); setEditingTask(null); editForm.resetFields(); }}
+        onCancel={() => {
+          setEditModalOpen(false);
+          setEditingTask(null);
+          editForm.resetFields();
+        }}
         confirmLoading={updateMutation.isPending}
         okText="保存"
         cancelText="取消"
@@ -594,7 +766,7 @@ export function KanbanPage() {
           </div>
           <Form.Item name="assignedAgentId" label="指派给">
             <Select allowClear placeholder="选择员工（可选）">
-              {agents.map(a => {
+              {agents.map((a) => {
                 const roleInfo = AGENT_ROLES[a.role] || AGENT_ROLES.custom;
                 return (
                   <Select.Option key={a.id} value={a.id}>

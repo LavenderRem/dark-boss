@@ -31,6 +31,7 @@ const { createWsServer, closeWsServer } = await import('./ws/connection.js');
 const { config, isClaudeSdkAvailable, getClaudeEnv } = await import('./utils/config.js');
 const { snapshotAll } = await import('./services/performance-service.js');
 const { restoreProcesses, shutdownAll } = await import('./services/agent-process-manager.js');
+const { checkOverdueTasks } = await import('./services/notification-service.js');
 
 async function main() {
   // 初始化数据库
@@ -45,6 +46,10 @@ async function main() {
   // 每小时计算绩效快照
   snapshotAll(); // 启动时立即计算一次
   const snapshotInterval = setInterval(snapshotAll, 60 * 60 * 1000);
+
+  // 每 5 分钟检查逾期任务
+  checkOverdueTasks(); // 启动时立即检查一次
+  setInterval(checkOverdueTasks, 5 * 60 * 1000);
 
   // 恢复 Agent 进程状态
   restoreProcesses();

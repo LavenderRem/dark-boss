@@ -2,8 +2,52 @@ import { Router } from 'express';
 import { queryAll, queryOne, run } from '../db/connection.js';
 import { broadcast } from '../ws/connection.js';
 import { v4 as uuid } from 'uuid';
+import { createNotification } from '../services/notification-service.js';
 
 const router = Router();
+
+// 批量更新任务（放在 /:id 之前避免路由冲突）
+router.patch('/batch', (req, res) => {
+  try {
+    const { taskIds, updates } = req.body;
+    if (!Array.isArray(taskIds) || taskIds.length === 0) {
+      return res.status(400).json({ error: '必须指定 taskIds' });
+    }
+
+    const allowedFields = ['status', 'priority', 'assigned_agent_id'];
+    const setClauses: string[] = [];
+    const params: unknown[] = [];
+
+    for (const field of allowedFields) {
+      const key = field === 'assigned_agent_id' ? 'assignedAgentId' : field;
+      if (updates[key] !== undefined) {
+        setClauses.push(`${field} = ?`);
+        params.push(updates[key]);
+      }
+    }
+
+    if (setClauses.length === 0) {
+      return res.status(400).json({ error: '没有可更新的字段' });
+    }
+
+    setClauses.push('updated_at = ?');
+    params.push(Date.now());
+
+    const placeholders = taskIds.map(() => '?').join(',');
+    params.push(...taskIds);
+
+    run(`UPDATE tasks SET ${setClauses.join(', ')} WHERE id IN (${placeholders})`, params);
+
+    for (const id of taskIds) {
+      broadcast('task:updated', { taskId: id, action: 'batch_updated' });
+    }
+
+    res.json({ success: true, updatedCount: taskIds.length });
+  } catch (err) {
+    console.error('批量更新任务失败:', err);
+    res.status(500).json({ error: '批量更新任务失败' });
+  }
+});
 
 // 按工作流查询关联任务（放在 /:id 之前避免路由冲突）
 router.get('/by-workflow/:workflowId', (req, res) => {
@@ -67,16 +111,25 @@ router.post('/', (req, res) => {
     const body = req.body;
 
     run(
-      `INSERT INTO tasks (id, title, description, status, priority, assigned_agent_id, department_id, workflow_id, estimated_minutes, due_at, column_order, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO tasks (id, title, description, status, priority, assigned_agent_id, department_id, workflow_id, estimated_minutes, due_at, column_order, parent_task_id, task_type, tags, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id, body.title, body.description || null,
         body.status || 'todo', body.priority || 'medium',
         body.assignedAgentId || null, body.departmentId || null,
         body.workflowId || null, body.estimatedMinutes || null,
-        body.dueAt || null,
-        now, now, now,
+        body.dueAt || null, now,
+        body.parentTaskId || null,
+        body.taskType || 'task',
+        body.tags ? JSON.stringify(body.tags) : null,
+        now, now,
       ]
+    );
+
+    // 创建任务事件
+    run(
+      `INSERT INTO task_events (id, task_id, event_type, agent_id, payload, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      [uuid(), id, 'task_created', body.assignedAgentId || null, JSON.stringify({ status: body.status || 'todo' }), now]
     );
 
     const task = queryOne('SELECT * FROM tasks WHERE id = ?', [id]);
@@ -104,6 +157,8 @@ router.patch('/:id', (req, res) => {
     if (req.body.assignedAgentId !== undefined) { sets.push('assigned_agent_id = ?'); vals.push(req.body.assignedAgentId); }
     if (req.body.workflowNodeId !== undefined) { sets.push('workflow_node_id = ?'); vals.push(req.body.workflowNodeId); }
     if (req.body.dueAt !== undefined) { sets.push('due_at = ?'); vals.push(req.body.dueAt); }
+    if (req.body.tags !== undefined) { sets.push('tags = ?'); vals.push(req.body.tags !== null ? JSON.stringify(req.body.tags) : null); }
+    if (req.body.taskType !== undefined) { sets.push('task_type = ?'); vals.push(req.body.taskType); }
 
     sets.push('updated_at = ?');
     vals.push(Date.now());
@@ -148,6 +203,21 @@ router.patch('/:id/move', (req, res) => {
 
     const updated = queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     broadcast('task:updated', { taskId: req.params.id, action: 'moved', status });
+
+    // 如果任务标记为完成，发送通知
+    if (status === 'done' && existing.status !== 'done') {
+      const task = queryOne('SELECT id, title, assigned_agent_id FROM tasks WHERE id = ?', [req.params.id]);
+      if (task && task.assigned_agent_id) {
+        createNotification({
+          type: 'task_completed',
+          taskId: req.params.id,
+          agentId: task.assigned_agent_id as string,
+          message: `任务已完成：${task.title}`,
+          detail: '恭喜！任务已成功完成',
+        });
+      }
+    }
+
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: '移动任务失败' });
@@ -176,16 +246,26 @@ router.post('/agent/:agentId/pull-task', async (req, res) => {
 // 分配任务给 Agent
 router.post('/:id/assign/:agentId', (req, res) => {
   try {
-    const task = queryOne('SELECT id FROM tasks WHERE id = ?', [req.params.id]);
+    const task = queryOne('SELECT id, title FROM tasks WHERE id = ?', [req.params.id]);
     if (!task) return res.status(404).json({ error: '任务不存在' });
 
-    const agent = queryOne('SELECT id FROM agents WHERE id = ?', [req.params.agentId]);
+    const agent = queryOne('SELECT id, name FROM agents WHERE id = ?', [req.params.agentId]);
     if (!agent) return res.status(404).json({ error: 'Agent 不存在' });
 
     run('UPDATE tasks SET assigned_agent_id = ?, updated_at = ? WHERE id = ?', [req.params.agentId, Date.now(), req.params.id]);
 
     const updated = queryOne('SELECT * FROM tasks WHERE id = ?', [req.params.id]);
     broadcast('task:updated', { taskId: req.params.id, action: 'assigned' });
+
+    // 创建任务分配通知
+    createNotification({
+      type: 'task_assigned',
+      taskId: req.params.id,
+      agentId: req.params.agentId,
+      message: `您收到了新任务：${task.title}`,
+      detail: `任务已分配给 ${agent.name}，请及时查看`,
+    });
+
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: '分配任务失败' });
@@ -253,6 +333,61 @@ router.post('/delegate', async (req, res) => {
     console.error('Boss 委托失败:', err);
     res.status(500).json({ error: err instanceof Error ? err.message : 'Boss 委托失败' });
   }
+});
+
+// 添加依赖关系
+router.post('/:id/dependencies', (req, res) => {
+  const taskId = req.params.id;
+  const { dependsOnId } = req.body;
+  if (!dependsOnId) return res.status(400).json({ error: '必须指定 dependsOnId' });
+
+  const dep = queryOne('SELECT id FROM tasks WHERE id = ?', [dependsOnId]);
+  if (!dep) return res.status(404).json({ error: '依赖的任务不存在' });
+
+  const id = uuid();
+  const now = Date.now();
+  run(
+    `INSERT OR IGNORE INTO task_dependencies (id, task_id, depends_on_id, created_at) VALUES (?, ?, ?, ?)`,
+    [id, taskId, dependsOnId, now]
+  );
+
+  // 更新 blocked_by 缓存
+  const deps = queryAll('SELECT depends_on_id FROM task_dependencies WHERE task_id = ?', [taskId]).map((r: any) => r.depends_on_id);
+  run('UPDATE tasks SET blocked_by = ?, updated_at = ? WHERE id = ?', [JSON.stringify(deps), now, taskId]);
+
+  broadcast('task:updated', { taskId, action: 'dependency_added', dependsOnId });
+  res.status(201).json({ id, taskId, dependsOnId });
+});
+
+// 移除依赖关系
+router.delete('/:id/dependencies/:depId', (req, res) => {
+  const { id, depId } = req.params;
+  run('DELETE FROM task_dependencies WHERE task_id = ? AND id = ?', [id, depId]);
+
+  const now = Date.now();
+  const deps = queryAll('SELECT depends_on_id FROM task_dependencies WHERE task_id = ?', [id]).map((r: any) => r.depends_on_id);
+  run('UPDATE tasks SET blocked_by = ?, updated_at = ? WHERE id = ?', [JSON.stringify(deps), now, id]);
+
+  broadcast('task:updated', { taskId: id, action: 'dependency_removed', depId });
+  res.json({ success: true });
+});
+
+// 获取子任务
+router.get('/:id/children', (req, res) => {
+  const children = queryAll(
+    'SELECT * FROM tasks WHERE parent_task_id = ? ORDER BY column_order ASC, created_at ASC',
+    [req.params.id]
+  );
+  res.json(children);
+});
+
+// 获取任务事件历史
+router.get('/:id/events', (req, res) => {
+  const events = queryAll(
+    'SELECT * FROM task_events WHERE task_id = ? ORDER BY created_at DESC LIMIT 50',
+    [req.params.id]
+  );
+  res.json(events);
 });
 
 export default router;

@@ -11,6 +11,7 @@ import {
   ThunderboltOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import type { Task, TaskStatus, TaskPriority, Agent } from '@dark-boss/shared';
 import { AGENT_ROLES } from '@dark-boss/shared';
 import { MarkdownRenderer } from '../../../components/chat/markdown-renderer.js';
@@ -55,6 +56,7 @@ interface TaskDetailDrawerProps {
   open: boolean;
   onClose: () => void;
   agents: Agent[];
+  allTasks: Task[];
   departments: { id: string; name: string }[];
   workflows: { id: string; name: string }[];
   onEdit: (task: Task) => void;
@@ -68,6 +70,7 @@ export function TaskDetailDrawer({
   open,
   onClose,
   agents,
+  allTasks,
   departments,
   workflows,
   onEdit,
@@ -79,6 +82,13 @@ export function TaskDetailDrawer({
   const [runWorkflowModalOpen, setRunWorkflowModalOpen] = useState(false);
   const [runInput, setRunInput] = useState('');
   const [isRunningWorkflow, setIsRunningWorkflow] = useState(false);
+
+  // 获取子任务
+  const { data: childTasks = [] } = useQuery({
+    queryKey: ['tasks', 'children', task?.id],
+    queryFn: () => api.get<Task[]>(`/tasks/${task?.id}/children`),
+    enabled: !!task?.id,
+  });
 
   if (!task) return null;
 
@@ -292,6 +302,90 @@ export function TaskDetailDrawer({
             </Space>
           )}
         </div>
+      )}
+
+      {/* 被阻塞于 */}
+      {(() => {
+        const blockedBy = Array.isArray(task.blockedBy) ? task.blockedBy : typeof task.blockedBy === 'string' && task.blockedBy ? JSON.parse(task.blockedBy as string) : [];
+        return blockedBy.length > 0 && (
+        <>
+          <Divider style={{ borderColor: '#3d3a39', margin: '16px 0' }} />
+          <div>
+            <Text style={{ color: '#8b949e', fontSize: 12, marginBottom: 8, display: 'block' }}>被阻塞于</Text>
+            <Space direction="vertical" size={4} style={{ width: '100%' }}>
+              {blockedBy.map((blockedTaskId: string) => {
+                const blockedTask = allTasks.find(t => t.id === blockedTaskId);
+                if (!blockedTask) return null;
+                const blockedStatusCfg = STATUS_CONFIG[blockedTask.status] || STATUS_CONFIG.backlog;
+                return (
+                  <div
+                    key={blockedTask.id}
+                    style={{
+                      background: '#0a0a0c',
+                      borderRadius: 4,
+                      padding: '6px 10px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      border: '1px solid #3d3a39',
+                    }}
+                  >
+                    <Text style={{ color: '#f2f2f2', fontSize: 13 }}>{blockedTask.title}</Text>
+                    <Tag color={blockedStatusCfg.color} style={{ fontSize: 11, margin: 0 }}>
+                      {blockedStatusCfg.label}
+                    </Tag>
+                  </div>
+                );
+              })}
+            </Space>
+          </div>
+        </>
+        );
+      })()}
+
+      {/* 子任务清单 */}
+      {childTasks.length > 0 && (
+        <>
+          <Divider style={{ borderColor: '#3d3a39', margin: '16px 0' }} />
+          <div>
+            <Text style={{ color: '#8b949e', fontSize: 12, marginBottom: 8, display: 'block' }}>子任务清单</Text>
+            <Space direction="vertical" size={4} style={{ width: '100%' }}>
+              {childTasks.map(childTask => {
+                const isDone = childTask.status === 'done';
+                const isInProgress = childTask.status === 'in_progress';
+                const statusIcon = isDone ? '✓' : isInProgress ? '◐' : '○';
+                const childStatusCfg = STATUS_CONFIG[childTask.status] || STATUS_CONFIG.backlog;
+                return (
+                  <div
+                    key={childTask.id}
+                    style={{
+                      background: '#0a0a0c',
+                      borderRadius: 4,
+                      padding: '6px 10px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      border: '1px solid #3d3a39',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: isDone ? '#595959' : '#f2f2f2',
+                        fontSize: 13,
+                        textDecoration: isDone ? 'line-through' : 'none',
+                      }}
+                    >
+                      {statusIcon} {childTask.title}
+                    </Text>
+                    <Tag color={childStatusCfg.color} style={{ fontSize: 11, margin: 0 }}>
+                      {childStatusCfg.label}
+                    </Tag>
+                  </div>
+                );
+              })}
+            </Space>
+          </div>
+        </>
       )}
 
       {/* 执行结果 */}

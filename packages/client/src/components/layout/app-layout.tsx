@@ -17,6 +17,7 @@ import { api } from '../../api/client.js';
 import type { Agent } from '@dark-boss/shared';
 import { ContextMeter } from '../agent/context-meter.js';
 import { AgentStatusSync } from '../agent/agent-status-sync.js';
+import { NotificationBell } from '../../pages/kanban/components/notification-bell.js';
 
 const { Sider, Header, Content } = Layout;
 
@@ -100,6 +101,7 @@ export function AppLayout() {
             {workingAgent && (
               <ContextMeter agentId={workingAgent.id} size={28} showLabel={false} />
             )}
+            <NotificationBell />
           </div>
         </Header>
         <Content style={{

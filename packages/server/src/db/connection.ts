@@ -112,8 +112,49 @@ function createTables() {
       completed_at INTEGER,
       due_at INTEGER,
       result TEXT,
+      parent_task_id TEXT REFERENCES tasks(id),
+      task_type TEXT NOT NULL DEFAULT 'task',
+      tags TEXT,
+      blocked_by TEXT,
+      progress INTEGER DEFAULT 0,
+      activity_summary TEXT,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS task_dependencies (
+      id TEXT PRIMARY KEY,
+      task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      depends_on_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      dependency_type TEXT NOT NULL DEFAULT 'blocks',
+      created_at INTEGER NOT NULL,
+      UNIQUE(task_id, depends_on_id)
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS task_events (
+      id TEXT PRIMARY KEY,
+      task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      event_type TEXT NOT NULL,
+      agent_id TEXT REFERENCES agents(id),
+      payload TEXT,
+      created_at INTEGER NOT NULL
+    )
+  `);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      task_id TEXT REFERENCES tasks(id) ON DELETE CASCADE,
+      agent_id TEXT REFERENCES agents(id),
+      message TEXT NOT NULL,
+      detail TEXT,
+      read INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL
     )
   `);
 
@@ -310,7 +351,27 @@ function createTables() {
     )
   `);
 
+  // 迁移现有数据库
+  migrateTasksTable();
+
   save();
+}
+
+function migrateTasksTable() {
+  const columns = db!.exec("PRAGMA table_info(tasks)")[0]?.values.map(c => c[1]) || [];
+  const newColumns = [
+    { name: 'parent_task_id', def: 'TEXT REFERENCES tasks(id)' },
+    { name: 'task_type', def: "TEXT NOT NULL DEFAULT 'task'" },
+    { name: 'tags', def: 'TEXT' },
+    { name: 'blocked_by', def: 'TEXT' },
+    { name: 'progress', def: 'INTEGER DEFAULT 0' },
+    { name: 'activity_summary', def: 'TEXT' },
+  ];
+  for (const col of newColumns) {
+    if (!columns.includes(col.name)) {
+      db!.run(`ALTER TABLE tasks ADD COLUMN ${col.name} ${col.def}`);
+    }
+  }
 }
 
 // 保存数据库到文件

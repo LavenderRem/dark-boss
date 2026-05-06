@@ -1,3 +1,4 @@
+import { v4 as uuid } from 'uuid';
 import { queryOne, run } from '../db/connection.js';
 import { broadcast } from '../ws/connection.js';
 import { singleQuery, isSdkAvailable } from './claude-client.js';
@@ -58,10 +59,19 @@ export async function executeTask(taskId: string): Promise<void> {
   // 更新状态为进行中
   const now = Date.now();
   run(
-    "UPDATE tasks SET status = 'in_progress', started_at = ?, updated_at = ? WHERE id = ?",
-    [now, now, taskId]
+    "UPDATE tasks SET status = 'in_progress', started_at = ?, progress = 10, activity_summary = ?, updated_at = ? WHERE id = ?",
+    [now, 'Agent 已接手任务，准备执行', now, taskId]
   );
+  broadcast('task:progress', { taskId, progress: 10, activitySummary: 'Agent 已接手任务，准备执行' });
+  broadcast('task:activity', { taskId, activity: 'Agent 已接手任务，准备执行' });
   broadcast('task:updated', { taskId, action: 'started', status: 'in_progress' });
+
+  // 记录状态变更事件
+  run(
+    `INSERT INTO task_events (id, task_id, event_type, agent_id, payload, created_at) VALUES (?, ?, 'status_changed', ?, ?, ?)`,
+    [uuid(), taskId, task.assigned_agent_id, JSON.stringify({ from: task.status, to: 'in_progress' }), now]
+  );
+
   console.log(`[任务执行器] 任务 "${task.title}" 开始执行 (Agent: ${agent.name})`);
 
   try {
@@ -77,6 +87,13 @@ export async function executeTask(taskId: string): Promise<void> {
       task.due_at ? `\n### 截止日期\n${new Date(task.due_at).toLocaleString('zh-CN')}` : '',
     ].filter(Boolean).join('\n');
 
+    // 更新进度：正在执行 Claude API 调用
+    run(
+      "UPDATE tasks SET progress = 50, activity_summary = ?, updated_at = ? WHERE id = ?",
+      ['正在调用 Claude API 执行任务', Date.now(), taskId]
+    );
+    broadcast('task:progress', { taskId, progress: 50, activitySummary: '正在调用 Claude API 执行任务' });
+
     const result = await singleQuery(userPrompt, model, systemPrompt);
     console.log(`[任务执行器] 任务 "${task.title}" 执行完成: ${result.result.length} 字符, ${result.tokens} tokens`);
 
@@ -88,8 +105,15 @@ export async function executeTask(taskId: string): Promise<void> {
     // 更新任务为完成状态
     const completedAt = Date.now();
     run(
-      `UPDATE tasks SET status = 'review', result = ?, actual_minutes = ?, completed_at = ?, updated_at = ? WHERE id = ?`,
-      [result.result, actualMinutes || null, completedAt, completedAt, taskId]
+      `UPDATE tasks SET status = 'review', progress = 100, activity_summary = ?, result = ?, actual_minutes = ?, completed_at = ?, updated_at = ? WHERE id = ?`,
+      ['任务执行完成', result.result, actualMinutes || null, completedAt, completedAt, taskId]
+    );
+    broadcast('task:progress', { taskId, progress: 100, activitySummary: '任务执行完成' });
+
+    // 记录任务完成事件
+    run(
+      `INSERT INTO task_events (id, task_id, event_type, agent_id, payload, created_at) VALUES (?, ?, 'completed', ?, ?, ?)`,
+      [uuid(), taskId, task.assigned_agent_id, JSON.stringify({ result_length: result.result.length, tokens: result.tokens }), completedAt]
     );
 
     // 更新 Agent 的 Token/费用统计
@@ -103,10 +127,12 @@ export async function executeTask(taskId: string): Promise<void> {
     const errorMsg = err instanceof Error ? err.message : '未知错误';
     console.error(`[任务执行器] 任务 "${task.title}" 执行失败:`, errorMsg);
 
+    const errorTime = Date.now();
     run(
-      "UPDATE tasks SET status = 'todo', updated_at = ? WHERE id = ?",
-      [Date.now(), taskId]
+      "UPDATE tasks SET status = 'todo', progress = 0, activity_summary = ?, updated_at = ? WHERE id = ?",
+      [`执行失败: ${errorMsg}`, errorTime, taskId]
     );
+    broadcast('task:progress', { taskId, progress: 0, activitySummary: `执行失败: ${errorMsg}` });
     broadcast('task:updated', { taskId, action: 'failed', error: errorMsg });
     throw new Error(`任务执行失败: ${errorMsg}`);
   }

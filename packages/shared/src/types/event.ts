@@ -18,6 +18,10 @@ export type ServerEventType =
   | 'workflow:node_complete' // 节点完成
   | 'workflow:edge_active' // 数据流经边
   | 'task:updated'         // 任务状态变更
+  | 'task:progress'        // 任务进度更新
+  | 'task:activity'        // 任务活动记录
+  | 'notification:new'     // 新通知
+  | 'notification:read'    // 通知已读
   | 'chat:message'         // 新聊天消息
   | 'system:notification'; // 系统通知
 
@@ -143,4 +147,29 @@ export interface AgentTokenUsagePayload {
   tokens: number;
   inputTokens: number;
   outputTokens: number;
+}
+
+// 任务进度更新事件
+export interface TaskProgressPayload {
+  taskId: string;
+  progress: number;
+  summary: string;
+}
+
+// 任务活动记录事件
+export interface TaskActivityPayload {
+  taskId: string;
+  agentId: string;
+  activityType: string;
+  detail: string;
+  timestamp: number;
+}
+
+// 通知事件
+export interface NotificationPayload {
+  id: string;
+  type: string;
+  taskId: string;
+  message: string;
+  createdAt: number;
 }

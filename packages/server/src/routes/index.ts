@@ -9,6 +9,7 @@ import performanceRoutes from './performance.js';
 import fileRoutes from './files.js';
 import providerRoutes from './providers.js';
 import modelTierRoutes from './model-tiers.js';
+import notificationsRouter from './notifications.js';
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use('/performance', performanceRoutes);
 router.use('/files', fileRoutes);
 router.use('/providers', providerRoutes);
 router.use('/model-tiers', modelTierRoutes);
+router.use('/notifications', notificationsRouter);
 
 export default router;
